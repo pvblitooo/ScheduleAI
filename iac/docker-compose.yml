@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Nuevo servicio para nuestro backend
+  backend:
+    build: ../backend  # Construye la imagen usando el Dockerfile en la carpeta ../backend
+    container_name: schedule_api
+    ports:
+      - "8000:8000" # Mapea el puerto 8000 del contenedor al 8000 de tu máquina
+    volumes:
+      - ../backend:/app # Sincroniza tu código local con el del contenedor para ver cambios al instante
+    environment:
+      - GEMINI_API_KEY=AIzaSyDYygvkV4pysvb0PwQavH-Wl8okuKMclzM # Pega la clave que obtuviste de Google
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - db # Le dice a Docker que inicie el backend solo después de que la DB esté lista
+
+  # Nuestro servicio de base de datos existente
+  db:
+    image: postgres:15-alpine
+    container_name: schedule_db
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=supersecret
+      - POSTGRES_DB=schedule_app_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  pgdata:
+    driver: local
