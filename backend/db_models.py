@@ -1,4 +1,6 @@
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, JSON, DateTime
+from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import JSONB
 
 metadata = MetaData()
 
@@ -21,5 +23,15 @@ activities = Table(
     Column("priority", String, nullable=False),  # ej: "alta", "media", "baja"
     Column("frequency", String),                 # ej: "única", "diaria"
     # Clave foránea que enlaza cada actividad con un usuario
+    Column("owner_id", Integer, ForeignKey("users.id"), nullable=False),
+)
+
+schedules = Table(
+    "schedules",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String(100), nullable=False, default="Mi Rutina"),
+    Column("events", JSONB, nullable=False),
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
     Column("owner_id", Integer, ForeignKey("users.id"), nullable=False),
 )
