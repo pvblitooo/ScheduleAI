@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import apiClient from '../api/axiosConfig';
 
+import ActionModal from '../components/ActionModal';
+
 // --- CONSTANTES ---
 // Definimos las categorías y prioridades en un solo lugar para fácil mantenimiento.
 const CATEGORIES = [
@@ -23,6 +25,13 @@ const ActivitiesPage = () => {
   useEffect(() => {
     fetchActivities();
   }, []);
+
+  const [actionModal, setActionModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+  });
 
   // --- MANEJADORES DE API ---
   const fetchActivities = async () => {
@@ -58,16 +67,28 @@ const ActivitiesPage = () => {
     }
   };
 
-  const handleDeleteActivity = async (activityId) => {
-    // Usamos un confirm para seguridad
-    if (window.confirm("¿Estás seguro de que quieres eliminar esta actividad?")) {
-      try {
-        await apiClient.delete(`/activities/${activityId}`);
-        fetchActivities();
-      } catch (error) {
-        console.error("Error al eliminar actividad:", error);
-      }
-    }
+  const handleDeleteActivity = (activityId, activityName) => {
+    setActionModal({
+      isOpen: true,
+      title: 'Confirmar Eliminación',
+      message: `¿Estás seguro de que quieres eliminar la actividad "${activityName}"?`,
+      onConfirm: async () => {
+        try {
+          await apiClient.delete(`/activities/${activityId}`);
+          fetchActivities();
+          setActionModal({ isOpen: false, title: '', message: '' }); // Cierra el modal al éxito
+        } catch (error) {
+          console.error("Error al eliminar actividad:", error);
+          // Opcional: mostrar un modal de error si falla
+          setActionModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'No se pudo eliminar la actividad.',
+            onConfirm: null
+          });
+        }
+      },
+    });
   };
 
   // --- MANEJADORES DE ESTADO LOCAL ---
@@ -152,7 +173,7 @@ const ActivitiesPage = () => {
                   </div>
                   <div className="flex gap-4">
                     <button onClick={() => handleEditClick(act)} className="text-blue-400 hover:text-blue-200 font-semibold">Editar</button>
-                    <button onClick={() => handleDeleteActivity(act.id)} className="text-red-400 hover:text-red-200 font-semibold">Eliminar</button>
+                    <button onClick={() => handleDeleteActivity(act.id, act.name)} className="text-red-400 hover:text-red-200 font-semibold">Eliminar</button>
                   </div>
                 </div>
               )}
@@ -162,8 +183,17 @@ const ActivitiesPage = () => {
           )}
         </ul>
       </div>
-    </div>
-  );
+    {/* --- MODAL DE ACCIÓN --- */}
+    <ActionModal
+      isOpen={actionModal.isOpen}
+      onRequestClose={() => setActionModal({ ...actionModal, isOpen: false })}
+      title={actionModal.title}
+      message={actionModal.message}
+      onConfirm={actionModal.onConfirm}
+      showConfirmButton={!!actionModal.onConfirm}
+    />
+  </div>
+);
 };
 
 export default ActivitiesPage;
