@@ -6,12 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Organizador con IA</title>
     
-    <!-- ¡LÍNEA AÑADIDA! Esto cargará nuestra configuración dinámica -->
     <script src="/config.js"></script>
+    
+    <!-- Diagnóstico: Verificamos el valor justo después de cargar el script -->
+    <script>
+      console.log('DIAGNÓSTICO DESDE HTML: window.API_BASE_URL es:', window.API_BASE_URL);
+    </script>
 
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <!-- Usamos 'defer' para asegurarnos de que se ejecute después de parsear el HTML -->
+    <script type="module" src="/src/main.jsx" defer></script>
   </body>
 </html>

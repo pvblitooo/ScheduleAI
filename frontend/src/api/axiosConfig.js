@@ -1,14 +1,19 @@
 import axios from 'axios';
 
-// ¡CAMBIO CLAVE! Leemos la variable desde el objeto 'window' global,
-// que será creado por el script 'config.js'.
+// Diagnóstico: ¿Qué ve este archivo cuando se ejecuta?
+console.log('DIAGNÓSTICO DESDE AXIOS: Ejecutando axiosConfig.js. El valor actual de window.API_BASE_URL es:', window.API_BASE_URL);
+
 const baseURL = window.API_BASE_URL || 'http://localhost:8000';
+
+// Diagnóstico: ¿Qué valor se usó finalmente?
+console.log('DIAGNÓSTICO DESDE AXIOS: La baseURL se ha establecido en:', baseURL);
+
 
 const apiClient = axios.create({
   baseURL: baseURL,
 });
 
-// El interceptor para el token JWT sigue igual
+// El interceptor sigue igual
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
