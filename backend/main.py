@@ -121,9 +121,10 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     if user is None: raise cred_exc
     return user
 
+
 # --- APP ---
 app = FastAPI(title="API del Organizador de Horarios")
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+origins = ["*"]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 @app.on_event("startup")
