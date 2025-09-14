@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom'; 
 import apiClient from '../api/axiosConfig';
 import useLocalStorage from '../hooks/useLocalStorage';
 
@@ -12,43 +13,65 @@ import EventModal from '../components/EventModal';
 import SaveScheduleModal from '../components/SaveScheduleModal';
 import ActionModal from '../components/ActionModal';
 import DraggableActivity from '../components/DraggableActivity';
+import PreferencesModal from '../components/PreferencesModal';
+
+const getColorForCategory = (category) => {
+  switch (category) {
+    case 'estudio': return '#3b82f6';  // Azul
+    case 'trabajo': return '#8b5cf6';  // Púrpura
+    case 'ejercicio': return '#ef4444'; // Rojo
+    case 'ocio': return '#22c55e';     // Verde
+    case 'personal': return '#f97316';  // Naranja
+    case 'familia': return '#ec4899';   // Rosa
+    default: return '#6b7280';         // Gris por defecto
+  }
+};
 
 const CalendarPage = () => {
-  // Estados para datos y UI
+  // --- ESTADOS ---
   const [schedule, setSchedule] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [preferences, setPreferences] = useLocalStorage('userPreferences', { startHour: 8, endHour: 22 });
   const [activities, setActivities] = useState([]);
-  const [savedSchedules, setSavedSchedules] = useState([]);
-  const [calendarKey, setCalendarKey] = useState(0);
-
-  // Estados para el control de los modales
-  const [eventModalIsOpen, setEventModalIsOpen] = useState(false);
-  const [saveModalIsOpen, setSaveModalIsOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [actionModal, setActionModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [preferences, setPreferences] = useLocalStorage('userPreferences', { startHour: 8, endHour: 22 });
+  
   // Estados para la gestión de la rutina actual
   const [currentScheduleId, setCurrentScheduleId] = useState(null);
-  const [isDirty, setIsDirty] = useState(false); // ¿Hay cambios sin guardar?
+  const [currentScheduleName, setCurrentScheduleName] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
 
+  // Estados para modales
+  const [eventModalIsOpen, setEventModalIsOpen] = useState(false);
+  const [saveModalIsOpen, setSaveModalIsOpen] = useState(false);
+  const [preferencesModalIsOpen, setPreferencesModalIsOpen] = useState(false); // ¡NUEVO ESTADO!
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [actionModal, setActionModal] = useState({ isOpen: false, title: '', message: '' });
+
+  // Refs y hooks de navegación
   const externalEventsRef = useRef(null);
-
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [calendarKey, setCalendarKey] = useState(0);
+  const location = useLocation();
 
   // Carga inicial de datos
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchActivitiesData = async () => {
       try {
         const activitiesResponse = await apiClient.get('/activities/');
         setActivities(activitiesResponse.data);
-        await fetchSavedSchedules();
       } catch (error) {
-        console.error("Error al cargar datos iniciales:", error);
+        console.error("Error al cargar actividades:", error);
       }
     };
-    fetchInitialData();
+    fetchActivitiesData();
   }, []);
+
+  useEffect(() => {
+    if (location.state && location.state.scheduleToLoad) {
+      handleLoadSchedule(location.state.scheduleToLoad);
+      // Limpiamos el estado para no volver a cargarla si el usuario refresca la página
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state]);
 
   useEffect(() => {
     let draggable = null; // Guardamos la instancia aquí para poder destruirla
@@ -60,10 +83,6 @@ const CalendarPage = () => {
         }
       });
     }
-
-    // --- ¡LA CLAVE ESTÁ AQUÍ! ---
-    // Esta función se ejecuta antes de que el efecto se vuelva a ejecutar,
-    // o cuando el componente se desmonta.
     return () => {
       if (draggable) {
         draggable.destroy(); // Destruimos la instancia anterior
@@ -71,13 +90,17 @@ const CalendarPage = () => {
     };
   }, [activities]); // La dependencia sigue siendo la misma
 
-  const fetchSavedSchedules = async () => {
-    try {
-        const response = await apiClient.get('/schedules/');
-        setSavedSchedules(response.data);
-    } catch (error) {
-        console.error("Error al cargar las rutinas guardadas:", error);
-    }
+  const mapEventsWithColors = (events) => {
+    return events.map((event, index) => {
+        const color = getColorForCategory(event.category);
+        return {
+            ...event,
+            id: event.id || `${Date.now()}-${index}`,
+            allDay: false,
+            backgroundColor: color,
+            borderColor: color,
+        };
+      });
   };
 
   // Genera un nuevo horario
@@ -85,25 +108,19 @@ const CalendarPage = () => {
     setIsLoading(true);
     setSchedule([]);
     try {
-      const response = await apiClient.post('/generate-schedule', preferences);
-      const finalEvents = response.data.map((event, index) => {
-        let backgroundColor = '#3b82f6';
-        const title = event.title.toLowerCase();
-        if (title.includes('descanso') || title.includes('ocio')) backgroundColor = '#22c55e';
-        else if (title.includes('comida') || title.includes('almuerzo')) backgroundColor = '#f97316';
-        else if (title.includes('ejercicio')) backgroundColor = '#ef4444';
-        return { ...event, id: `${Date.now()}-${index}`, allDay: false, backgroundColor, borderColor: backgroundColor };
-      });
-      setSchedule(finalEvents);
-      setCurrentScheduleId(null);
-      setIsDirty(true);
+        const response = await apiClient.post('/generate-schedule', preferences);
+        // La IA ya devuelve la categoría, solo tenemos que pintarla.
+        const eventsWithColors = mapEventsWithColors(response.data);
+        setSchedule(eventsWithColors);
+        setCurrentScheduleId(null);
+        setIsDirty(true);
     } catch (error) {
-      console.error("Error al generar el horario:", error);
-      setActionModal({ isOpen: true, title: "Error de API", message: "No se pudo generar el horario. Revisa tu cuota de API." });
+        console.error("Error al generar el horario:", error);
+        setActionModal({ isOpen: true, title: "Error de API", message: "No se pudo generar el horario. Revisa tu cuota de API." });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
   
   // --- ¡CORRECCIONES CLAVE AQUÍ! ---
 
@@ -114,15 +131,15 @@ const CalendarPage = () => {
 
   // 2. Carga una rutina y le asigna IDs a los eventos
   const handleLoadSchedule = (scheduleToLoad) => {
-    let events = typeof scheduleToLoad.events === 'string' ? JSON.parse(scheduleToLoad.events) : scheduleToLoad.events;
+    let events = typeof scheduleToLoad.events === 'string' 
+        ? JSON.parse(scheduleToLoad.events) 
+        : scheduleToLoad.events;
     
-    const eventsWithIds = events.map((event, index) => ({
-      ...event,
-      id: event.id || `${Date.now()}-${index}`
-    }));
+    const eventsWithColors = mapEventsWithColors(events);
     
-    setSchedule(eventsWithIds);
+    setSchedule(eventsWithColors); // <- Corrección del nombre de la variable
     setCurrentScheduleId(scheduleToLoad.id);
+    setCurrentScheduleName(scheduleToLoad.name); // <- Línea añadida
     setIsDirty(false);
     setCalendarKey(prevKey => prevKey + 1);
   };
@@ -152,63 +169,32 @@ const CalendarPage = () => {
   const handleConfirmSaveNew = async (scheduleName) => {
     const cleanSchedule = cleanEventsForBackend(schedule);
     try {
-      const response = await apiClient.post('/schedules/', { name: scheduleName, events: cleanSchedule });
-      setCurrentScheduleId(response.data.id);
-      setIsDirty(false);
-      setActionModal({ isOpen: true, title: "Éxito", message: `Rutina "${scheduleName}" guardada.` });
-      await fetchSavedSchedules();
+        const response = await apiClient.post('/schedules/', { name: scheduleName, events: cleanSchedule });
+        setCurrentScheduleId(response.data.id);
+        setCurrentScheduleName(scheduleName); // <- Línea añadida
+        setIsDirty(false);
+        setActionModal({ isOpen: true, title: "Éxito", message: `Rutina "${scheduleName}" guardada.` });
+        // La línea 'await fetchSavedSchedules();' se elimina.
     } catch (error) {
-      console.error("Error al guardar:", error);
-      setActionModal({ isOpen: true, title: "Error", message: "No se pudo guardar la rutina." });
+        console.error("Error al guardar:", error);
+        setActionModal({ isOpen: true, title: "Error", message: "No se pudo guardar la rutina." });
     }
   };
 
-  // 6. ACTUALIZA una rutina existente (usando los eventos limpios)
-  const handleUpdateSchedule = async () => {
-    const currentName = savedSchedules.find(s => s.id === currentScheduleId)?.name || 'Rutina Actualizada';
+  // Versión Modificada
+const handleUpdateSchedule = async () => {
     const cleanSchedule = cleanEventsForBackend(schedule);
     try {
-      await apiClient.put(`/schedules/${currentScheduleId}`, { name: currentName, events: cleanSchedule });
-      setIsDirty(false);
-      setActionModal({ isOpen: true, title: "Éxito", message: "Los cambios han sido guardados." });
-
-      // =================================================================
-      // ¡LA LÍNEA QUE FALTABA!
-      // Refrescamos la lista local de rutinas guardadas con los nuevos
-      // datos que acabamos de guardar en el backend.
-      await fetchSavedSchedules();
-      // =================================================================
-
+        // Usamos 'currentScheduleName' del estado en lugar de buscar en 'savedSchedules'.
+        await apiClient.put(`/schedules/${currentScheduleId}`, { name: currentScheduleName, events: cleanSchedule });
+        setIsDirty(false);
+        setActionModal({ isOpen: true, title: "Éxito", message: "Los cambios han sido guardados." });
+        // La línea 'await fetchSavedSchedules();' se elimina.
     } catch (error) {
-      console.error("Error al actualizar:", error);
-      setActionModal({ isOpen: true, title: "Error", message: "No se pudieron guardar los cambios." });
+        console.error("Error al actualizar:", error);
     }
   };
   
-  // (Resto de funciones auxiliares sin cambios)
-  const handleDeleteSchedule = (scheduleId) => {
-    setActionModal({
-      isOpen: true,
-      title: "Confirmar Eliminación",
-      message: "¿Estás seguro de que quieres eliminar esta rutina?",
-      onConfirm: () => confirmDelete(scheduleId)
-    });
-  };
-  const confirmDelete = async (scheduleId) => {
-    try {
-      await apiClient.delete(`/schedules/${scheduleId}`);
-      setActionModal({ isOpen: true, title: "Éxito", message: "La rutina ha sido eliminada." });
-      await fetchSavedSchedules();
-      if (currentScheduleId === scheduleId) {
-          setSchedule([]);
-          setCurrentScheduleId(null);
-          setIsDirty(false);
-      }
-    } catch (error) { /* ... */ }
-  };
-
-  // --- ¡NUEVAS FUNCIONES PARA EL MODAL EDITABLE! ---
-
   // Se ejecuta cuando el usuario guarda cambios en un evento desde el modal
   const handleUpdateEvent = (eventId, updatedData) => {
     const updatedSchedule = schedule.map(event => {
@@ -308,39 +294,72 @@ const CalendarPage = () => {
 
   return (
     <div className="text-white grid grid-cols-1 lg:grid-cols-4 gap-8 p-4 md:p-8">
+      
+      {/* --- COLUMNA IZQUIERDA: SÓLO "MIS ACTIVIDADES" --- */}
+      <div className="lg:col-span-1">
+        <div className="bg-gray-800 p-6 rounded-lg h-full flex flex-col">
+          <h2 className="text-xl font-bold mb-4">Mis Actividades</h2>
+          <p className="text-sm text-gray-400 mb-4">Arrastra al calendario para añadir.</p>
+          <div ref={externalEventsRef} id="external-events" className="flex-grow space-y-3 overflow-y-auto pr-2 -mr-2">
+            {activities.length > 0 ? (
+              activities.map(act => (
+                <DraggableActivity 
+                  key={act.id} 
+                  activity={act} 
+                  getColor={getColorForCategory}
+                />
+              ))
+            ) : (
+              <p className="text-gray-400 text-sm">Crea actividades en la página "Actividades" para empezar a planificar.</p>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* --- CONTENIDO PRINCIPAL: CALENDARIO Y ACCIONES --- */}
       <div className="lg:col-span-3">
         <div className="bg-gray-800 p-6 rounded-lg mb-4">
-          <h2 className="text-2xl font-bold mb-4">Generador de Rutina Semanal</h2>
-          {/* --- ¡NUEVO DISEÑO DE BOTONES! --- */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">Generador de Rutina Semanal</h2>
+            
+            {/* --- BOTÓN PARA ABRIR EL MODAL DE PREFERENCIAS --- */}
+            <button 
+              onClick={() => setPreferencesModalIsOpen(true)}
+              className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
+              title="Abrir Preferencias"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+          </div>
+          
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            {/* Botón para Crear Rutina con degradado púrpura */}
             <button 
               onClick={handleGenerateSchedule} 
               disabled={isLoading || activities.length === 0} 
-              className="w-full text-white bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-purple-300 dark:focus:ring-purple-800 shadow-lg shadow-purple-500/50 dark:shadow-lg dark:shadow-purple-800/80 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-white bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-purple-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Creando...' : 'Crear Nueva Rutina'}
             </button>
-    
-            {/* Botón para Analizar con IA con degradado cian */}
+            
             {schedule.length > 0 && (
               <button
                 onClick={handleRequestAnalysis}
                 disabled={isAnalyzing}
-                className="w-full text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 shadow-lg shadow-cyan-500/50 dark:shadow-lg dark:shadow-cyan-800/80 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-cyan-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAnalyzing ? 'Analizando...' : 'Analizar con IA'}
               </button>
             )}
+          </div>
         </div>
-      </div>
+
         {isDirty && schedule.length > 0 && !isLoading && (
           <div className="text-center my-4">
             <button 
               onClick={handleSaveOrUpdate} 
               className="bg-green-600 hover:bg-green-700 font-bold py-2 px-6 rounded-lg transition-transform transform hover:scale-105"
             >
-              {currentScheduleId ? 'Guardar Cambios' : 'Guardar Rutina Nueva'}
+              {currentScheduleId ? `Guardar Cambios en "${currentScheduleName}"` : 'Guardar Rutina Nueva'}
             </button>
           </div>
         )}
@@ -350,8 +369,8 @@ const CalendarPage = () => {
             key={calendarKey}
             plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
             editable={true}
-            droppable={true} // <-- Permite que se suelten elementos
-            eventReceive={handleEventReceive} // <-- "Escucha" los elementos soltados
+            droppable={true}
+            eventReceive={handleEventReceive}
             eventChange={handleEventChange}
             initialView="timeGrid"
             duration={{ weeks: 1 }}
@@ -362,68 +381,28 @@ const CalendarPage = () => {
             firstDay={1}
             events={schedule}
             locale='es'
-            slotMinTime={`${String(preferences.startHour).padStart(2, '0')}:00:00`}
-            slotMaxTime={`${String(preferences.endHour).padStart(2, '0')}:00:00`}
+            slotMinTime="05:00:00"
+            slotMaxTime="23:00:00"
             height="auto"
             eventClick={handleEventClick}
           />
         </div>
       </div>
-
-      <div className="lg:col-span-1 space-y-8">
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-bold mb-4">Preferencias</h2>
-          <div className="flex flex-col gap-4">
-            <label className="font-semibold">Empezar día:
-              <input type="number" name="startHour" value={preferences.startHour} onChange={handlePreferencesChange} className="w-full bg-gray-700 rounded p-2 mt-1 font-normal" />
-            </label>
-            <label className="font-semibold">Terminar día:
-              <input type="number" name="endHour" value={preferences.endHour} onChange={handlePreferencesChange} className="w-full bg-gray-700 rounded p-2 mt-1 font-normal" />
-            </label>
-          </div>
-        </div>
-
-        {/* --- ¡NUEVA SECCIÓN DE ACTIVIDADES! --- */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-bold mb-4">Mis Actividades</h2>
-          <p className="text-sm text-gray-400 mb-4">Arrastra una actividad al calendario para añadirla.</p>
-          <div ref={externalEventsRef} id="external-events" className="space-y-2 max-h-60 overflow-y-auto pr-2">
-            {activities.length > 0 ? (
-              activities.map(act => (
-                <DraggableActivity key={act.id} activity={act} />
-              ))
-            ) : (
-              <p className="text-gray-400 text-sm">Aún no tienes actividades creadas.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-bold mb-4">Mis Rutinas Guardadas</h2>
-          {savedSchedules.length > 0 ? (
-            <ul className="space-y-3 max-h-96 overflow-y-auto pr-2">
-              {savedSchedules.map(s => (
-                <li key={s.id} className={`bg-gray-700 p-3 rounded-lg flex justify-between items-center transition-all ${currentScheduleId === s.id ? 'ring-2 ring-blue-500' : 'hover:bg-gray-600'}`}>
-                  <span className="font-semibold flex-1 truncate pr-2">{s.name}</span>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button onClick={() => handleLoadSchedule(s)} className="text-xs bg-blue-600 hover:bg-blue-700 py-1 px-2 rounded">Cargar</button>
-                    <button onClick={() => handleDeleteSchedule(s.id)} className="text-xs bg-red-600 hover:bg-red-700 py-1 px-2 rounded">X</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-400 text-sm">Aún no tienes rutinas guardadas.</p>
-          )}
-        </div>
-      </div>
       
+      {/* --- MODALES --- */}
+      <PreferencesModal
+        isOpen={preferencesModalIsOpen}
+        onRequestClose={() => setPreferencesModalIsOpen(false)}
+        preferences={preferences}
+        onPreferencesChange={handlePreferencesChange}
+        onSave={() => setPreferencesModalIsOpen(false)}
+      />
       <EventModal 
         isOpen={eventModalIsOpen}
         onRequestClose={() => setEventModalIsOpen(false)}
         event={selectedEvent}
-        onUpdate={handleUpdateEvent} // <-- Le pasamos la función de actualizar
-        onDelete={handleDeleteEvent} // <-- Le pasamos la función de eliminar
+        onUpdate={handleUpdateEvent}
+        onDelete={handleDeleteEvent}
       />
       <SaveScheduleModal
         isOpen={saveModalIsOpen}
@@ -432,7 +411,7 @@ const CalendarPage = () => {
       />
       <ActionModal
         isOpen={actionModal.isOpen}
-        onRequestClose={() => setActionModal({ isOpen: false, title: '', message: '', onConfirm: null })}
+        onRequestClose={() => setActionModal({ ...actionModal, isOpen: false })}
         title={actionModal.title}
         message={actionModal.message}
         onConfirm={actionModal.onConfirm}

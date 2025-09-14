@@ -6,6 +6,7 @@ import ActivitiesPage from './pages/ActivitiesPage';
 import CalendarPage from './pages/CalendarPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import SavedSchedulesPage from './pages/SavedSchedulesPage';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -42,7 +43,7 @@ function App() {
             {/* Las rutas hijas son relativas a la del padre. No necesitan el '/' al principio */}
             <Route path="actividades" element={<ActivitiesPage />} />
             <Route path="calendario" element={<CalendarPage />} />
-            
+            <Route path="schedules" element={<SavedSchedulesPage />} />
             {/* Ruta comodín para cualquier otra cosa dentro de las rutas protegidas */}
             <Route path="*" element={<Navigate to="/" />} />
           </Route>

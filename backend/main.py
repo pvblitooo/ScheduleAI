@@ -27,15 +27,59 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 # --- MODELOS ---
-class Token(BaseModel): access_token: str; token_type: str
-class UserBase(BaseModel): email: EmailStr
-class UserCreate(UserBase): password: str
-class User(UserBase): id: int
-class UserInDB(User): hashed_password: str
-class ActivityBase(BaseModel): name: str; duration: int; priority: str; frequency: str | None = None
-class ActivityCreate(ActivityBase): pass
-class Activity(ActivityBase): id: int; owner_id: int
-class UserPreferences(BaseModel): startHour: int = 8; endHour: int = 22
+class Token(BaseModel):
+    """Modelo para el token de acceso JWT."""
+    access_token: str
+    token_type: str
+
+
+class UserBase(BaseModel):
+    """Modelo base para un usuario, contiene los campos comunes."""
+    email: EmailStr
+
+
+class UserCreate(UserBase):
+    """Modelo para la creación de un nuevo usuario, añade la contraseña."""
+    password: str
+
+
+class User(UserBase):
+    """Modelo para representar a un usuario que se devuelve desde la API."""
+    id: int
+
+
+class UserInDB(User):
+    """Modelo completo del usuario como existe en la base de datos, incluyendo la contraseña hasheada."""
+    hashed_password: str
+
+
+# --- MODELOS DE ACTIVIDADES Y PREFERENCIAS ---
+
+class ActivityBase(BaseModel):
+    """Modelo base para una actividad, con los campos que el usuario define."""
+    name: str
+    duration: int
+    priority: str
+    # La categoría ahora es un campo obligatorio.
+    category: str
+    frequency: str | None = None
+
+
+class ActivityCreate(ActivityBase):
+    """Modelo para crear una nueva actividad. No añade campos nuevos, solo hereda."""
+    pass
+
+
+class Activity(ActivityBase):
+    """Modelo completo de la actividad como se devuelve desde la API, incluyendo su ID y el del propietario."""
+    id: int
+    owner_id: int
+
+
+class UserPreferences(BaseModel):
+    """Modelo para las preferencias del usuario al generar un horario."""
+    startHour: int = 8
+    endHour: int = 22
 
 class ScheduleAnalysisRequest(BaseModel):
     events: List[Dict[str, Any]]
@@ -226,10 +270,13 @@ async def generate_schedule(preferences: UserPreferences, user: Annotated[User, 
         "Actividades del usuario:\n"
     )
     for act in user_activities:
-        prompt_text += f"- Tarea: {act.name}, Duración: {act.duration} minutos, Prioridad: {act.priority}\n"
+        # --- ¡CAMBIO CLAVE! ---
+        # Ahora le pasamos la categoría a la IA para que la conozca
+        prompt_text += f"- Tarea: {act.name}, Duración: {act.duration} minutos, Prioridad: {act.priority}, Categoría: {act.category}\n"
     
     prompt_text += (
-        "\nDevuelve SÓLO un array de objetos JSON. Cada objeto debe tener 'title', 'start' y 'end'. "
+        "\nDevuelve SÓLO un array de objetos JSON. Cada objeto debe tener 'title', 'start', 'end' y, MUY IMPORTANTE, 'category'. "
+        "La 'category' debe ser una de las que se te proporcionaron (ej: 'estudio', 'ejercicio', 'trabajo', etc.). "
         "Las fechas deben estar en formato 'YYYY-MM-DDTHH:MM:SS' y corresponder a la semana genérica del 2024-01-01 al 2024-01-07. No añadas texto adicional."
     )
     

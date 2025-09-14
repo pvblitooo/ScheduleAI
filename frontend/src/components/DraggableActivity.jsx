@@ -1,25 +1,53 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
-const DraggableActivity = ({ activity }) => {
+// Nueva función auxiliar que vive solo en este componente para definir el estilo de las etiquetas.
+// Usa colores pastel para el fondo y un texto más oscuro para mejor legibilidad.
+const getCategoryAppearance = (category) => {
+  switch (category) {
+    case 'estudio':   return { className: 'bg-blue-200 text-blue-800', name: 'Estudio' };
+    case 'trabajo':   return { className: 'bg-purple-200 text-purple-800', name: 'Trabajo' };
+    case 'ejercicio': return { className: 'bg-red-200 text-red-800', name: 'Ejercicio' };
+    case 'ocio':      return { className: 'bg-green-200 text-green-800', name: 'Ocio' };
+    case 'personal':  return { className: 'bg-orange-200 text-orange-800', name: 'Personal' };
+    case 'familia':   return { className: 'bg-pink-200 text-pink-800', name: 'Familia' };
+    default:          return { className: 'bg-gray-200 text-gray-800', name: category };
+  }
+};
 
-  // Este es el "payload" o la información que el calendario recibirá
-  // cuando soltemos este elemento sobre él.
+const DraggableActivity = ({ activity, getColor }) => {
+  // 1. Obtenemos el color HEX para el evento del CALENDARIO (lógica sin cambios)
+  const eventColor = getColor ? getColor(activity.category) : '#6b7280';
+  
+  // 2. Obtenemos el estilo de la ETIQUETA para ESTE componente
+  const categoryStyle = getCategoryAppearance(activity.category);
+
+  // Preparamos los datos para FullCalendar, usando el color HEX como siempre
   const eventData = {
     title: activity.name,
     duration: `${String(Math.floor(activity.duration / 60)).padStart(2, '0')}:${String(activity.duration % 60).padStart(2, '0')}`,
-    // Podemos añadir un color por defecto si queremos
-    backgroundColor: '#0ea5e9', // Un azul cian para los nuevos eventos
-    borderColor: '#0ea5e9'
+    backgroundColor: eventColor,
+    borderColor: eventColor,
+    extendedProps: {
+        category: activity.category
+    }
   };
 
   return (
+    // Contenedor principal ahora con fondo neutro y layout flexible
     <div
-      className='fc-event fc-h-event fc-daygrid-event fc-daygrid-block-event p-2 mb-2 rounded-lg cursor-pointer bg-gray-700 hover:bg-gray-600 transition-colors'
-      data-event={JSON.stringify(eventData)} // ¡La clave está aquí!
+      className='fc-event flex justify-between items-center bg-gray-800 hover:bg-gray-700 p-3 mb-2 rounded-lg cursor-pointer transition-colors'
+      data-event={JSON.stringify(eventData)}
     >
-      <div className='fc-event-main'>
-        <strong>{activity.name}</strong> ({activity.duration} min)
+      {/* Lado izquierdo: Nombre y duración */}
+      <div>
+        <strong className="text-white font-semibold">{activity.name}</strong>
+        <p className="text-sm text-gray-400">{activity.duration} min</p>
       </div>
+
+      {/* Lado derecho: La nueva etiqueta de categoría */}
+      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${categoryStyle.className}`}>
+        {categoryStyle.name}
+      </span>
     </div>
   );
 };

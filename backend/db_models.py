@@ -22,7 +22,7 @@ activities = Table(
     Column("duration", Integer, nullable=False), # Duración en minutos
     Column("priority", String, nullable=False),  # ej: "alta", "media", "baja"
     Column("frequency", String),                 # ej: "única", "diaria"
-    # Clave foránea que enlaza cada actividad con un usuario
+    Column("category", String(50), nullable=False),  # <-- ¡NUEVA COLUMNA!
     Column("owner_id", Integer, ForeignKey("users.id"), nullable=False),
 )
 

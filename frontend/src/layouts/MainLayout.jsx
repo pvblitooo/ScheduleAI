@@ -16,6 +16,7 @@ const MainLayout = ({ handleLogout }) => {
               <NavLink to="/" style={({ isActive }) => isActive ? activeLinkStyle : undefined} className="py-2 px-1 hover:text-purple-300 transition-colors">Dashboard</NavLink>
               <NavLink to="/actividades" style={({ isActive }) => isActive ? activeLinkStyle : undefined} className="py-2 px-1 hover:text-purple-300 transition-colors">Actividades</NavLink>
               <NavLink to="/calendario" style={({ isActive }) => isActive ? activeLinkStyle : undefined} className="py-2 px-1 hover:text-purple-300 transition-colors">Calendario</NavLink>
+              <NavLink to="/schedules" style={({ isActive }) => isActive ? activeLinkStyle : undefined} className="py-2 px-1 hover:text-purple-300 transition-colors">Rutinas</NavLink>
             </div>
             <button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-lg transition-colors">
               Cerrar Sesión
