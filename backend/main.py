@@ -124,7 +124,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 
 # --- APP ---
 app = FastAPI(title="API del Organizador de Horarios")
-origins = ["*"]
+origins = [
+    "https://scheduleai-app.onrender.com", # La URL de tu frontend en producción
+    "http://localhost:5173",              # Para desarrollo local con Vite
+    "http://127.0.0.1:5173",              # Otra variación de localhost
+]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 @app.on_event("startup")
