@@ -1,36 +1,31 @@
 # ---- Stage 1: Build ----
-# Declara un argumento que puede ser pasado durante el build
-ARG VITE_API_BASE_URL
-
-# Usa una imagen de Node para construir la aplicación React
+# Construye la aplicación de React como siempre, pero ya no nos preocupamos por la variable de entorno aquí.
 FROM node:20 AS build
 WORKDIR /app
-
-# Pasa el argumento del build como una variable de entorno para el proceso de build
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-
-# Copia los archivos de manifiesto e instala dependencias
 COPY package*.json ./
 RUN npm install
-
-# Copia el resto del código de la aplicación
 COPY . .
-
-# El comando 'npm run build' ahora tendrá acceso a la variable
 RUN npm run build
 
 # ---- Stage 2: Serve ----
-# Usa una imagen de Nginx para servir los archivos estáticos
+# Usa Nginx para servir los archivos
 FROM nginx:alpine
 
-# Copia los archivos construidos desde la etapa 'build'
+# Copia los archivos de la app construida
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copia nuestro archivo de configuración personalizado para React Router
+# Copia la configuración de Nginx para React Router
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expone el puerto 80
+# --- ¡LA SOLUCIÓN DEFINITIVA! ---
+# 1. Crea un script de inicio ('entrypoint.sh') dentro del contenedor.
+#    Este script se ejecutará cada vez que el contenedor arranque.
+RUN echo '#!/bin/sh' > /entrypoint.sh && \
+    echo 'echo "window.API_BASE_URL = \\"${VITE_API_BASE_URL}\\"" > /usr/share/nginx/html/config.js' >> /entrypoint.sh && \
+    echo 'nginx -g "daemon off;"' >> /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
 EXPOSE 80
 
-# Comando para iniciar el servidor Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# 2. Usa este nuevo script como el comando de inicio del contenedor.
+CMD ["/entrypoint.sh"]
