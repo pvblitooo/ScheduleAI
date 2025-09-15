@@ -113,76 +113,150 @@ const ActivitiesPage = () => {
 
   // --- RENDERIZADO DEL COMPONENTE ---
   return (
-    <div className="text-white p-4 sm:p-8">
-      {/* --- FORMULARIO PARA AÑADIR ACTIVIDADES --- */}
-      <div className="bg-gray-800 p-6 rounded-lg mb-8">
-        <h2 className="text-2xl font-bold mb-4">Añadir Nueva Actividad</h2>
-        <form onSubmit={handleAddActivity} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-          <input name="name" value={newActivity.name} onChange={handleNewActivityChange} required placeholder="Nombre de la actividad" className="md:col-span-2 rounded bg-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-          <input name="duration" value={newActivity.duration} onChange={handleNewActivityChange} required type="number" placeholder="Duración (min)" className="rounded bg-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-          <select name="priority" value={newActivity.priority} onChange={handleNewActivityChange} className="rounded bg-gray-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+  <div className="text-white p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
+    
+    {/* --- FORMULARIO PARA AÑADIR ACTIVIDADES --- */}
+    <section className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
+      <h2 className="text-2xl font-bold mb-6">Añadir Nueva Actividad</h2>
+      <form onSubmit={handleAddActivity} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 items-start">
+        
+        {/* Campo Nombre */}
+        <div className="sm:col-span-2 lg:col-span-2">
+          <label htmlFor="new-name" className="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
+          <input id="new-name" name="name" value={newActivity.name} onChange={handleNewActivityChange} required placeholder="Ej: Estudiar para el examen" className="w-full rounded bg-gray-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-inner" />
+        </div>
+
+        {/* Campo Duración */}
+        <div>
+          <label htmlFor="new-duration" className="block text-sm font-medium text-gray-400 mb-1">Duración (min)</label>
+          <input id="new-duration" name="duration" value={newActivity.duration} onChange={handleNewActivityChange} required type="number" placeholder="60" className="w-full rounded bg-gray-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-inner" />
+        </div>
+
+        {/* Campo Prioridad */}
+        <div>
+          <label htmlFor="new-priority" className="block text-sm font-medium text-gray-400 mb-1">Prioridad</label>
+          <select id="new-priority" name="priority" value={newActivity.priority} onChange={handleNewActivityChange} className="w-full rounded bg-gray-700 px-3 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500">
             <option value="alta">Alta</option>
             <option value="media">Media</option>
             <option value="baja">Baja</option>
           </select>
-          {/* --- ¡NUEVO SELECT DE CATEGORÍA! --- */}
-          <select name="category" value={newActivity.category} onChange={handleNewActivityChange} required className="rounded bg-gray-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <option value="" disabled>Categoría</option>
+        </div>
+
+        {/* Campo Categoría */}
+        <div>
+          <label htmlFor="new-category" className="block text-sm font-medium text-gray-400 mb-1">Categoría</label>
+          <select id="new-category" name="category" value={newActivity.category} onChange={handleNewActivityChange} required className="w-full rounded bg-gray-700 px-3 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="" disabled>Seleccionar...</option>
             {CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
-          <button type="submit" className="md:col-span-5 rounded bg-purple-600 px-6 py-2 font-bold text-white hover:bg-purple-700 transition-colors">Añadir Actividad</button>
-        </form>
-      </div>
+        </div>
 
-      {/* --- LISTA DE ACTIVIDADES EXISTENTES --- */}
-      <div className="bg-gray-800 p-6 rounded-lg">
-        <h2 className="text-2xl font-bold mb-4">Tus Actividades</h2>
-        <ul className="space-y-4">
-          {activities.length > 0 ? activities.map(act => (
-            <li key={act.id} className="bg-gray-700 p-4 rounded-lg">
-              {editingId === act.id ? (
-                // --- FORMULARIO DE EDICIÓN ---
-                <div className="space-y-4">
-                  <input type="text" name="name" value={editData.name} onChange={handleEditChange} className="bg-gray-600 rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-green-500" />
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <input type="number" name="duration" value={editData.duration} onChange={handleEditChange} className="bg-gray-600 rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-green-500" />
-                    <select name="priority" value={editData.priority} onChange={handleEditChange} className="bg-gray-600 rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-green-500">
+        {/* Botón Submit */}
+        <div className="sm:col-span-2 lg:col-span-5 pt-5 sm:pt-0">
+          <button type="submit" className="w-full rounded-lg bg-purple-600 px-6 py-3 font-bold text-white hover:bg-purple-700 transition-colors">Añadir Actividad</button>
+        </div>
+      </form>
+    </section>
+
+    {/* --- LISTA DE ACTIVIDADES EXISTENTES --- */}
+    <section className="bg-gray-800 p-6 rounded-xl shadow-lg">
+      <h2 className="text-2xl font-bold mb-6">Tus Actividades</h2>
+      <ul className="space-y-4">
+        {activities.length > 0 ? activities.map(act => (
+          <li key={act.id} className="bg-gray-700 p-4 rounded-lg transition-all duration-300">
+            {editingId === act.id ? (
+              // --- FORMULARIO DE EDICIÓN RESPONSIVO (LA PIEZA NUEVA) ---
+              <div className="space-y-4">
+                {/* Input principal para el nombre */}
+                <div>
+                  <label htmlFor={`edit-name-${act.id}`} className="sr-only">Nombre de la actividad</label>
+                  <input 
+                    id={`edit-name-${act.id}`}
+                    type="text" 
+                    name="name" 
+                    value={editData.name} 
+                    onChange={handleEditChange} 
+                    className="w-full rounded bg-gray-600 px-4 py-3 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 shadow-inner" 
+                  />
+                </div>
+                
+                {/* Grid para los campos secundarios */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label htmlFor={`edit-duration-${act.id}`} className="block text-xs font-medium text-gray-400 mb-1">Duración (min)</label>
+                    <input 
+                      id={`edit-duration-${act.id}`}
+                      type="number" name="duration" value={editData.duration} onChange={handleEditChange} 
+                      className="w-full rounded bg-gray-600 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-inner" 
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`edit-priority-${act.id}`} className="block text-xs font-medium text-gray-400 mb-1">Prioridad</label>
+                    <select 
+                      id={`edit-priority-${act.id}`}
+                      name="priority" value={editData.priority} onChange={handleEditChange} 
+                      className="w-full rounded bg-gray-600 px-3 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
                       <option value="alta">Alta</option>
                       <option value="media">Media</option>
                       <option value="baja">Baja</option>
                     </select>
-                    {/* --- ¡NUEVO SELECT DE CATEGORÍA EN EDICIÓN! --- */}
-                    <select name="category" value={editData.category} onChange={handleEditChange} required className="bg-gray-600 rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-green-500">
-                      <option value="" disabled>Categoría</option>
+                  </div>
+                  <div>
+                    <label htmlFor={`edit-category-${act.id}`} className="block text-xs font-medium text-gray-400 mb-1">Categoría</label>
+                    <select 
+                      id={`edit-category-${act.id}`}
+                      name="category" value={editData.category} onChange={handleEditChange} required 
+                      className="w-full rounded bg-gray-600 px-3 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="" disabled>Seleccionar...</option>
                       {CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                     </select>
                   </div>
-                  <div className="flex justify-end gap-4">
-                    <button onClick={() => handleSaveEdit(act.id)} className="bg-green-600 hover:bg-green-700 font-bold py-2 px-4 rounded transition-colors">Guardar</button>
-                    <button onClick={handleCancelEdit} className="bg-gray-600 hover:bg-gray-500 py-2 px-4 rounded transition-colors">Cancelar</button>
-                  </div>
                 </div>
-              ) : (
-                // --- VISTA DE ACTIVIDAD ---
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-lg">{act.name}</p>
-                    <p className="text-sm text-gray-400">
-                      {act.duration} min | Prioridad: {act.priority} | <span className="font-medium text-gray-300">Categoría: {act.category}</span> {/* <-- Categoría visible */}
-                    </p>
-                  </div>
-                  <div className="flex gap-4">
-                    <button onClick={() => handleEditClick(act)} className="text-blue-400 hover:text-blue-200 font-semibold">Editar</button>
-                    <button onClick={() => handleDeleteActivity(act.id, act.name)} className="text-red-400 hover:text-red-200 font-semibold">Eliminar</button>
-                  </div>
+
+                {/* Botones de acción responsivos */}
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+                  <button 
+                    onClick={handleCancelEdit} 
+                    className="w-full sm:w-auto bg-gray-500 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={() => handleSaveEdit(act.id)} 
+                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Guardar Cambios
+                  </button>
                 </div>
-              )}
-            </li>
-          )) : (
-            <p className="text-gray-400">No tienes actividades. Añade una para empezar.</p>
-          )}
-        </ul>
-      </div>
+              </div>
+            ) : (
+              // --- VISTA DE ACTIVIDAD (AHORA RESPONSIVA) ---
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <div className="flex-grow">
+                  <p className="font-semibold text-lg">{act.name}</p>
+                  <p className="text-sm text-gray-400">
+                    {act.duration} min | Prioridad: {act.priority} | <span className="font-medium text-gray-300">Categoría: {act.category}</span>
+                  </p>
+                </div>
+                <div className="flex gap-4 self-end sm:self-auto">
+                  <button onClick={() => handleEditClick(act)} className="text-blue-400 hover:text-blue-200 font-semibold">Editar</button>
+                  <button onClick={() => handleDeleteActivity(act.id, act.name)} className="text-red-400 hover:text-red-200 font-semibold">Eliminar</button>
+                </div>
+              </div>
+            )}
+          </li>
+        )) : (
+          // --- ESTADO VACÍO MEJORADO ---
+          <div className="text-center py-10 border-2 border-dashed border-gray-700 rounded-lg">
+            <p className="text-gray-400 text-lg">Aún no tienes actividades.</p>
+            <p className="text-gray-500 mt-1">¡Añade tu primera tarea para empezar a organizar tu semana!</p>
+          </div>
+        )}
+      </ul>
+    </section>
+
     {/* --- MODAL DE ACCIÓN --- */}
     <ActionModal
       isOpen={actionModal.isOpen}

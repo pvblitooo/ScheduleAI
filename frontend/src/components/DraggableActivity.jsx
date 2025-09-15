@@ -33,23 +33,22 @@ const DraggableActivity = ({ activity, getColor }) => {
   };
 
   return (
-    // Contenedor principal ahora con fondo neutro y layout flexible
-    <div
-      className='fc-event flex justify-between items-center bg-gray-800 hover:bg-gray-700 p-3 mb-2 rounded-lg cursor-pointer transition-colors'
-      data-event={JSON.stringify(eventData)}
-    >
-      {/* Lado izquierdo: Nombre y duración */}
-      <div>
-        <strong className="text-white font-semibold">{activity.name}</strong>
-        <p className="text-sm text-gray-400">{activity.duration} min</p>
-      </div>
-
-      {/* Lado derecho: La nueva etiqueta de categoría */}
-      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${categoryStyle.className}`}>
-        {categoryStyle.name}
-      </span>
+  <div
+    className='fc-event flex justify-between items-center gap-4 bg-gray-800 hover:bg-gray-700 p-3 mb-2 rounded-lg cursor-pointer transition-colors'
+    data-event={JSON.stringify(eventData)}
+  >
+    {/* Lado izquierdo: Contenedor flexible para truncado correcto */}
+    <div className="min-w-0 flex-grow">
+      <strong className="text-white font-semibold block truncate">{activity.name}</strong>
+      <p className="text-sm text-gray-400">{activity.duration} min</p>
     </div>
-  );
+
+    {/* Lado derecho: La etiqueta no se encoge */}
+    <span className={`flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-full ${categoryStyle.className}`}>
+      {categoryStyle.name}
+    </span>
+  </div>
+);
 };
 
 export default DraggableActivity;

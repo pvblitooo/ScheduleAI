@@ -293,101 +293,107 @@ const handleUpdateSchedule = async () => {
 
 
   return (
-    <div className="text-white grid grid-cols-1 lg:grid-cols-4 gap-8 p-4 md:p-8">
-      
-      {/* --- COLUMNA IZQUIERDA: SÓLO "MIS ACTIVIDADES" --- */}
-      <div className="lg:col-span-1">
-        <div className="bg-gray-800 p-6 rounded-lg h-full flex flex-col">
-          <h2 className="text-xl font-bold mb-4">Mis Actividades</h2>
-          <p className="text-sm text-gray-400 mb-4">Arrastra al calendario para añadir.</p>
-          <div ref={externalEventsRef} id="external-events" className="flex-grow space-y-3 overflow-y-auto pr-2 -mr-2">
-            {activities.length > 0 ? (
-              activities.map(act => (
-                <DraggableActivity 
-                  key={act.id} 
-                  activity={act} 
-                  getColor={getColorForCategory}
-                />
-              ))
-            ) : (
-              <p className="text-gray-400 text-sm">Crea actividades en la página "Actividades" para empezar a planificar.</p>
-            )}
-          </div>
+  // Contenedor principal con un grid responsivo y espaciado consistente.
+  <div className="text-white grid grid-cols-1 lg:grid-cols-12 gap-8 p-4 md:p-6">
+    
+    {/* --- COLUMNA IZQUIERDA: "MIS ACTIVIDADES" --- */}
+    <div className="lg:col-span-3">
+      <div className="bg-gray-800 p-6 rounded-xl shadow-lg h-full flex flex-col">
+        <h2 className="text-xl font-bold mb-2">Mis Actividades</h2>
+        <p className="text-sm text-gray-400 mb-4">Arrastra una actividad al calendario para añadirla.</p>
+        <div ref={externalEventsRef} id="external-events" className="flex-grow space-y-3 overflow-y-auto pr-2 -mr-2 simple-scrollbar">
+          {activities.length > 0 ? (
+            activities.map(act => (
+              <DraggableActivity 
+                key={act.id} 
+                activity={act} 
+                getColor={getColorForCategory}
+              />
+            ))
+          ) : (
+            <div className="text-center py-10 border-2 border-dashed border-gray-700 rounded-lg">
+              <p className="text-gray-400">No hay actividades.</p>
+              <p className="text-gray-500 mt-1 text-sm">Ve a "Actividades" para crear algunas.</p>
+            </div>
+          )}
         </div>
       </div>
-      
-      {/* --- CONTENIDO PRINCIPAL: CALENDARIO Y ACCIONES --- */}
-      <div className="lg:col-span-3">
-        <div className="bg-gray-800 p-6 rounded-lg mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">Generador de Rutina Semanal</h2>
-            
-            {/* --- BOTÓN PARA ABRIR EL MODAL DE PREFERENCIAS --- */}
-            <button 
-              onClick={() => setPreferencesModalIsOpen(true)}
-              className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
-              title="Abrir Preferencias"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            </button>
-          </div>
+    </div>
+    
+    {/* --- CONTENIDO PRINCIPAL: CALENDARIO Y ACCIONES --- */}
+    <div className="lg:col-span-9">
+      {/* Panel de Control */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+          <h2 className="text-2xl font-bold">Generador de Rutina Semanal</h2>
+          <button 
+            onClick={() => setPreferencesModalIsOpen(true)}
+            className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
+            title="Abrir Preferencias"
+          >
+            {/* Icono de configuración */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </button>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-4 mt-4">
+          <button 
+            onClick={handleGenerateSchedule} 
+            disabled={isLoading || activities.length === 0} 
+            className="w-full text-white bg-gradient-to-r from-purple-500 to-purple-700 hover:bg-gradient-to-br font-bold rounded-lg px-5 py-3 text-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Creando...' : 'Crear Nueva Rutina'}
+          </button>
           
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <button 
-              onClick={handleGenerateSchedule} 
-              disabled={isLoading || activities.length === 0} 
-              className="w-full text-white bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-purple-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          {schedule.length > 0 && (
+            <button
+              onClick={handleRequestAnalysis}
+              disabled={isAnalyzing}
+              className="w-full text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl font-bold rounded-lg px-5 py-3 text-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Creando...' : 'Crear Nueva Rutina'}
+              {isAnalyzing ? 'Analizando...' : 'Analizar con IA'}
             </button>
-            
-            {schedule.length > 0 && (
-              <button
-                onClick={handleRequestAnalysis}
-                disabled={isAnalyzing}
-                className="w-full text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-cyan-300 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAnalyzing ? 'Analizando...' : 'Analizar con IA'}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {isDirty && schedule.length > 0 && !isLoading && (
-          <div className="text-center my-4">
-            <button 
-              onClick={handleSaveOrUpdate} 
-              className="bg-green-600 hover:bg-green-700 font-bold py-2 px-6 rounded-lg transition-transform transform hover:scale-105"
-            >
-              {currentScheduleId ? `Guardar Cambios en "${currentScheduleName}"` : 'Guardar Rutina Nueva'}
-            </button>
-          </div>
-        )}
-
-        <div className="mt-4 bg-white text-gray-800 rounded-lg p-4">
-          <FullCalendar
-            key={calendarKey}
-            plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-            editable={true}
-            droppable={true}
-            eventReceive={handleEventReceive}
-            eventChange={handleEventChange}
-            initialView="timeGrid"
-            duration={{ weeks: 1 }}
-            headerToolbar={false}
-            initialDate='2024-01-01'
-            dayHeaderFormat={{ weekday: 'long' }}
-            allDaySlot={false}
-            firstDay={1}
-            events={schedule}
-            locale='es'
-            slotMinTime="05:00:00"
-            slotMaxTime="23:00:00"
-            height="auto"
-            eventClick={handleEventClick}
-          />
+          )}
         </div>
       </div>
+
+      {/* Botón de Guardar Condicional */}
+      {isDirty && schedule.length > 0 && !isLoading && (
+        <div className="text-center my-4">
+          <button 
+            onClick={handleSaveOrUpdate} 
+            className="bg-green-600 hover:bg-green-700 font-bold py-2 px-6 rounded-lg transition-transform transform hover:scale-105"
+          >
+            {currentScheduleId ? `Guardar Cambios en "${currentScheduleName}"` : 'Guardar Rutina Nueva'}
+          </button>
+        </div>
+      )}
+
+      {/* Contenedor del Calendario */}
+      <div className="bg-white text-gray-800 rounded-xl shadow-2xl p-1 sm:p-2 md:p-4">
+        <FullCalendar
+          key={calendarKey}
+          plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
+          editable={true}
+          droppable={true}
+          eventReceive={handleEventReceive}
+          eventChange={handleEventChange}
+          initialView="timeGrid" // Usamos una vista de semana simple
+          duration={{ weeks: 1 }}
+          headerToolbar={false} // Quitamos la barra de herramientas por defecto
+          initialDate='2024-01-01'
+          dayHeaderFormat={{ weekday: 'long' }} // Muestra nombres completos de los días
+          allDaySlot={false} // Oculta la fila de "todo el día"
+          firstDay={1} // Lunes como primer día de la semana
+          events={schedule}
+          locale='es'
+          slotMinTime="05:00:00"
+          slotMaxTime="23:00:00"
+          height="auto" // El calendario se adapta a la altura del contenido
+          eventClick={handleEventClick}
+        />
+      </div>
+    </div>
       
       {/* --- MODALES --- */}
       <PreferencesModal

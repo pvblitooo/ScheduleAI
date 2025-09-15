@@ -43,9 +43,14 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="w-full max-w-xs mx-auto">
-      <form onSubmit={handleSubmit} className="bg-gray-800 shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
-        <h2 className="text-white text-3xl font-bold mb-6 text-center">Crear Cuenta</h2>
+  // Contenedor principal para centrar todo
+  <div className="flex items-center justify-center min-h-screen bg-gray-900 px-4">
+    <div className="w-full max-w-sm">
+      <form onSubmit={handleSubmit} className="bg-gray-800 shadow-2xl rounded-xl px-8 pt-6 pb-8 mb-4">
+        
+        <h2 className="text-white text-2xl md:text-3xl font-bold mb-6 text-center">
+          Crear Cuenta
+        </h2>
 
         <div className="mb-4">
           <label className="block text-gray-400 text-sm font-bold mb-2" htmlFor="register-email">
@@ -58,7 +63,7 @@ const RegisterPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="shadow appearance-none border rounded w-full py-2 px-3 bg-gray-700 text-white leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="shadow-inner appearance-none border border-gray-700 rounded w-full py-3 px-4 bg-gray-700 text-white leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -73,13 +78,13 @@ const RegisterPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="shadow appearance-none border rounded w-full py-2 px-3 bg-gray-700 text-white mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="shadow-inner appearance-none border border-gray-700 rounded w-full py-3 px-4 bg-gray-700 text-white mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="flex items-center justify-between mb-4">
           <button 
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full transition-colors" 
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline w-full transition-all duration-300 disabled:opacity-50" 
             type="submit"
             disabled={isLoading}
           >
@@ -95,13 +100,14 @@ const RegisterPage = () => {
 
         <p className="text-center text-gray-500 text-xs mt-6">
           ¿Ya tienes una cuenta?{' '}
-          <Link to="/login" className="text-blue-400 hover:text-blue-300">
+          <Link to="/login" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
             Inicia Sesión
           </Link>
         </p>
       </form>
     </div>
-  );
+  </div>
+);
 };
 
 export default RegisterPage;
