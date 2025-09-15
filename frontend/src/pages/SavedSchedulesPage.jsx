@@ -6,6 +6,8 @@ import useLocalStorage from '../hooks/useLocalStorage';
 
 // ¡IMPORTANTE! Añadimos la importación del ActionModal
 import ActionModal from '../components/ActionModal';
+import interactionPlugin from '@fullcalendar/interaction';
+import EventModal from '../components/EventModal';
 
 // Reutilizamos la función de colores que ya tenemos
 const getColorForCategory = (category) => {
@@ -25,7 +27,10 @@ const SavedSchedulesPage = () => {
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [preferences] = useLocalStorage('userPreferences', { startHour: 8, endHour: 22 });
-
+  const [isDirty, setIsDirty] = useState(false);
+  const [eventModalIsOpen, setEventModalIsOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  
   // --- ¡NUEVO ESTADO PARA EL MODAL! ---
   // Este estado controlará nuestro modal de confirmación y de error.
   const [actionModal, setActionModal] = useState({ 
@@ -100,18 +105,84 @@ const SavedSchedulesPage = () => {
     setCalendarEvents(processedEvents);
   };
 
+  const handleEventClick = (clickInfo) => {
+    setSelectedEvent({
+        id: clickInfo.event.id,
+        title: clickInfo.event.title,
+        start: clickInfo.event.startStr,
+        end: clickInfo.event.endStr,
+        category: clickInfo.event.extendedProps.category,
+    });
+    setEventModalIsOpen(true);
+};
+
+// 2. Se activa cuando mueves o redimensionas un bloque
+const handleEventChange = (changeInfo) => {
+    const updatedEvents = calendarEvents.map(evt => 
+        evt.id === changeInfo.event.id 
+        ? { ...evt, start: changeInfo.event.startStr, end: changeInfo.event.endStr } 
+        : evt
+    );
+    setCalendarEvents(updatedEvents);
+    setIsDirty(true); // Marca la rutina como "modificada"
+};
+
+// 3. Se llama desde el EventModal para guardar cambios en un evento
+const handleUpdateEvent = (eventId, updatedData) => {
+    const updatedEvents = calendarEvents.map(event =>
+        event.id === eventId ? { ...event, ...updatedData } : event
+    );
+    setCalendarEvents(updatedEvents);
+    setIsDirty(true);
+    // Podríamos cerrar el modal aquí si quisiéramos
+    // setEventModalIsOpen(false); 
+};
+
+// 4. Guarda TODA la rutina actualizada en el backend
+const handleUpdateSchedule = async () => {
+    if (!selectedSchedule || !isDirty) return;
+    
+    // 1. Limpiamos los eventos para el backend (esto ya lo tenías)
+    const cleanEvents = calendarEvents.map(({ id, backgroundColor, borderColor, ...rest }) => rest);
+    
+    try {
+        // 2. Enviamos la actualización a la API
+        await apiClient.put(`/schedules/${selectedSchedule.id}`, { 
+            name: selectedSchedule.name, 
+            events: cleanEvents 
+        });
+        
+        // --- ¡LA PARTE NUEVA Y CLAVE! ---
+        // 3. Actualizamos la lista de rutinas en el estado LOCAL
+        setSavedSchedules(prevSchedules => 
+            prevSchedules.map(schedule => 
+                schedule.id === selectedSchedule.id 
+                ? { ...schedule, events: cleanEvents } // Reemplazamos los eventos de la rutina actualizada
+                : schedule
+            )
+        );
+
+        // 4. Reseteamos el estado 'dirty' y mostramos confirmación
+        setIsDirty(false);
+        setActionModal({ isOpen: true, title: "Éxito", message: "Rutina actualizada correctamente." });
+
+    } catch (error) {
+        console.error("Error al actualizar la rutina:", error);
+        setActionModal({ isOpen: true, title: "Error", message: "No se pudo actualizar la rutina." });
+    }
+};
+
   return (
-  <>
-    {/* Contenedor principal que se apila en móvil y se divide en escritorio */}
-    <div className="flex flex-col lg:flex-row gap-6 p-4 md:p-8 text-white lg:h-[calc(100vh-6rem)]">
-      
-      {/* --- Panel Izquierdo (Lista de Rutinas) --- */}
-      {/* En móvil ocupa todo el ancho; en escritorio, 1/3 o 1/4 del espacio */}
-      <div className="lg:w-1/3 xl:w-1/4 bg-gray-800 p-6 rounded-xl flex flex-col shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 flex-shrink-0">Mis Rutinas</h2>
-        <ul className="flex-grow overflow-y-auto space-y-3 -mr-2 pr-2 simple-scrollbar">
-          {savedSchedules.length > 0 ? (
-            savedSchedules.map((schedule) => (
+    <>
+      {/* --- CONTENEDOR PRINCIPAL RESPONSIVO --- */}
+      <div className="flex flex-col lg:flex-row gap-6 p-4 md:p-8 text-white h-[calc(100vh-6rem)]">
+        
+        {/* --- Panel Izquierdo (Lista de Rutinas) --- */}
+        {/* En móvil ocupa 1/3 de la altura, en desktop es una columna completa */}
+        <div className="lg:w-1/3 xl:w-1/4 flex flex-col bg-gray-800 p-6 rounded-xl shadow-lg h-1/3 lg:h-full">
+          <h2 className="text-2xl font-bold mb-6 flex-shrink-0">Mis Rutinas</h2>
+          <ul className="flex-grow overflow-y-auto space-y-3 -mr-2 pr-2 simple-scrollbar">
+            {savedSchedules.map((schedule) => (
               <li 
                 key={schedule.id}
                 onClick={() => handleScheduleSelect(schedule)}
@@ -126,64 +197,95 @@ const SavedSchedulesPage = () => {
                 </p>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Evita que se seleccione la rutina al borrar
+                    e.stopPropagation();
                     handleDeleteSchedule(schedule.id, schedule.name);
                   }}
-                  className="ml-4 bg-gray-600/50 hover:bg-red-500 text-white w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-300 lg:opacity-0 lg:group-hover:opacity-100 transform lg:hover:scale-110"
+                  className="ml-4 bg-gray-600/50 hover:bg-red-500 text-white w-8 h-8 flex-shrink-0 items-center justify-center rounded-full transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                   title="Eliminar rutina"
                 >
-                  {/* Icono de Papelera */}
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </li>
-            ))
-          ) : (
-            <div className="text-center py-10 border-2 border-dashed border-gray-700 rounded-lg h-full flex flex-col justify-center">
-              <p className="text-gray-400 text-lg">Sin Rutinas</p>
-              <p className="text-gray-500 mt-1 text-sm">Ve a "Calendario" para crear y guardar tu primera rutina.</p>
+            ))}
+          </ul>
+        </div>
+
+        {/* --- Panel Derecho (Calendario y Acciones) --- */}
+        {/* En móvil ocupa el espacio restante, en desktop es una columna completa */}
+        <div className="flex-grow flex flex-col gap-6 min-h-0">
+          
+          {/* Panel de Control */}
+          {selectedSchedule && (
+            <div className="bg-gray-800 p-4 rounded-xl shadow-lg flex flex-col sm:flex-row justify-between items-center gap-2 flex-shrink-0">
+                <h3 className="text-lg sm:text-xl font-bold text-white text-center sm:text-left">
+                    Editando: <span className="text-purple-400">{selectedSchedule.name}</span>
+                </h3>
+                {isDirty && (
+                    <button 
+                        onClick={handleUpdateSchedule} 
+                        className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
+                    >
+                        Guardar Cambios
+                    </button>
+                )}
             </div>
           )}
-        </ul>
-      </div>
 
-      {/* --- Panel Derecho (Calendario o Mensaje de Bienvenida) --- */}
-      <div className="flex-grow bg-white text-gray-800 rounded-xl shadow-2xl p-1 sm:p-2 md:p-4">
-        {selectedSchedule ? (
-          <FullCalendar
-            plugins={[timeGridPlugin]}
-            initialView="timeGridWeek"
-            headerToolbar={false}
-            dayHeaderFormat={{ weekday: 'long' }}
-            allDaySlot={false}
-            firstDay={1}
-            locale="es"
-            height="100%"
+          {/* Calendario */}
+          <div className="flex-grow bg-white text-gray-800 rounded-xl shadow-2xl p-1 sm:p-2 md:p-4 min-h-0">
+            {selectedSchedule ? (
+              <FullCalendar
+                // --- CONFIGURACIÓN UNIFICADA ---
+            plugins={[timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek" // La vista semanal que te gusta
+            headerToolbar={false} // Sin cabecera superior
+            allDaySlot={false} // Sin la fila de "todo el día"
+            locale="es" // En español
+            firstDay={1} // Lunes como primer día
+            height="100%" // Ocupa toda la altura disponible
+            
+            // --- PROPS PARA LA APARIENCIA CORRECTA ---
+            dayHeaderFormat={{ weekday: 'long' }} // Muestra solo "lunes", "martes", etc.
+            nowIndicator={false} // Oculta el indicador de la hora actual
+            slotMinTime="05:00:00" // Hora de inicio del calendario
+            slotMaxTime="23:00:00" // Hora de fin
+            initialDate='2024-01-01' // Una fecha fija para que no muestre la de "hoy"
+
+            // --- PROPS PARA LA INTERACCIÓN ---
             events={calendarEvents}
-            initialDate='2024-01-01'
-            slotMinTime="05:00:00"
-            slotMaxTime="23:00:00"
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center p-8">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            <p className="text-xl font-medium text-gray-500">Selecciona una rutina</p>
-            <p className="text-gray-400 mt-1">Elige una de tus rutinas guardadas en la lista para previsualizarla aquí.</p>
+            editable={true}
+            eventClick={handleEventClick}
+            eventChange={handleEventChange}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center p-8">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <p className="text-xl font-medium text-gray-500">Selecciona una rutina</p>
+                <p className="text-gray-400 mt-1">Elige una de tus rutinas para editarla aquí.</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
-    </div>
 
-    {/* --- Modal de Acción --- */}
-    <ActionModal
-      isOpen={actionModal.isOpen}
-      onRequestClose={() => setActionModal({ ...actionModal, isOpen: false })}
-      title={actionModal.title}
-      message={actionModal.message}
-      onConfirm={actionModal.onConfirm}
-      showConfirmButton={!!actionModal.onConfirm}
-    />
-  </>
-);
+      {/* --- MODALES --- */}
+      <EventModal
+          isOpen={eventModalIsOpen}
+          onRequestClose={() => setEventModalIsOpen(false)}
+          event={selectedEvent}
+          onUpdate={handleUpdateEvent}
+          onDelete={() => {}}
+      />
+      <ActionModal
+        isOpen={actionModal.isOpen}
+        onRequestClose={() => setActionModal({ ...actionModal, isOpen: false })}
+        title={actionModal.title}
+        message={actionModal.message}
+        onConfirm={actionModal.onConfirm}
+        showConfirmButton={!!actionModal.onConfirm}
+      />
+    </>
+  );
 };
 
 export default SavedSchedulesPage;
