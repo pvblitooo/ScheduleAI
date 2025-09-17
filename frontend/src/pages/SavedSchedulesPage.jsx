@@ -195,16 +195,18 @@ const handleUpdateSchedule = async () => {
                 <p className="font-semibold text-lg truncate flex-grow">
                   {schedule.name}
                 </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteSchedule(schedule.id, schedule.name);
-                  }}
-                  className="ml-4 bg-gray-600/50 hover:bg-red-500 text-white w-8 h-8 flex-shrink-0 items-center justify-center rounded-full transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
-                  title="Eliminar rutina"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
+                <div className="flex-shrink-0 ml-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSchedule(schedule.id, schedule.name);
+                    }}
+                    className="ml-4 bg-gray-600/50 hover:bg-red-500 text-white w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                    title="Eliminar rutina"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -232,7 +234,7 @@ const handleUpdateSchedule = async () => {
           )}
 
           {/* Calendario */}
-          <div className="flex-grow bg-white text-gray-800 rounded-xl shadow-2xl p-1 sm:p-2 md:p-4 min-h-0">
+          <div className={`flex-grow bg-white text-gray-800 rounded-xl shadow-2xl p-1 sm:p-2 md:p-4 min-h-0 ${!selectedSchedule && 'flex items-center justify-center'}`}>
             {selectedSchedule ? (
               <FullCalendar
                 // --- CONFIGURACIÓN UNIFICADA ---
