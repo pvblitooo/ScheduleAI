@@ -84,10 +84,17 @@ class PeakHourRange(BaseModel):
     end: str
 
 class UserPreferences(BaseModel):
-    """Modelo para las preferencias del usuario al generar un horario."""
-    startHour: int = 8
-    endHour: int = 22
-    peakHours: List[PeakHourRange] = []
+    """Modelo extendido para todas las preferencias de productividad del usuario."""
+    startHour: int = Field(default=8, description="Hora de inicio del día de trabajo (0-23)")
+    endHour: int = Field(default=22, description="Hora de fin del día de trabajo (1-24)")
+    peakHours: List[PeakHourRange] = Field(default=[], description="Bloques de tiempo de máxima productividad")
+    
+    # Nuevas preferencias de productividad
+    productivityArchetype: str = Field(default='Constante', description="Patrón de energía del usuario (ej: Madrugador, Nocturno)")
+    focusBlockDuration: int = Field(default=50, description="Duración preferida para bloques de trabajo enfocado, en minutos")
+    schedulingAggressiveness: str = Field(default='Normal', description="Estilo del horario (Relajado, Normal, Compacto)")
+    taskBatching: bool = Field(default=False, description="Si se deben agrupar tareas similares")
+    daysNoMeetings: List[str] = Field(default=[], description="Días de la semana para descanso total")
 
 class ScheduleAnalysisRequest(BaseModel):
     events: List[Dict[str, Any]]
@@ -300,37 +307,69 @@ async def generate_schedule(preferences: UserPreferences, user: Annotated[User, 
     user_activities = await read_activities(user)
     if not user_activities: return []
 
-    # --- PROMPT MEJORADO CON PREFERENCIAS ---
+    # --- INICIO DE LA CONSTRUCCIÓN DEL PROMPT ---
     prompt_text = (
         f"Eres un experto en productividad. Tu objetivo es crear la plantilla de horario semanal ideal y repetible para un usuario, de Lunes a Domingo. "
         f"El horario de cada día debe ir desde las {preferences.startHour}:00 hasta las {preferences.endHour}:00. "
     )
 
-    # --- ¡NUEVO BLOQUE PARA HORAS PICO! ---
+    # --- AÑADIMOS LAS NUEVAS PREFERENCIAS AL TEXTO ---
+
+    # 1. Horas Pico (ya lo tenías)
     if preferences.peakHours:
-        # Formateamos los bloques de tiempo para que la IA los entienda fácilmente
         peak_hours_str_list = [f"de {p.start} a {p.end}" for p in preferences.peakHours]
         peak_hours_str = " y ".join(peak_hours_str_list)
         prompt_text += (
             f"El usuario es más productivo en los siguientes bloques horarios: {peak_hours_str}. "
             "Debes intentar asignar las tareas de alta prioridad o que requieran más concentración (como 'estudio' o 'trabajo') en estos periodos. "
         )
-    # --- FIN DEL NUEVO BLOQUE ---
 
+    # 2. Arquetipo de Productividad
+    if preferences.productivityArchetype:
+        prompt_text += (
+            f"El arquetipo de productividad del usuario es '{preferences.productivityArchetype}'. "
+            f"Usa esto como guía: si es 'Madrugador', pon las tareas importantes por la mañana; si es 'Nocturno', por la tarde/noche. "
+        )
+
+    # 3. Bloques de enfoque y agresividad
     prompt_text += (
-        "Asigna las siguientes actividades a los días y horas más lógicos para maximizar la productividad y el bienestar. "
+        f"El usuario prefiere trabajar en bloques de enfoque de {preferences.focusBlockDuration} minutos. "
+        f"Debes dividir las tareas largas en bloques de esta duración (ej: 'Tarea Parte 1/2'). "
+    )
+    if preferences.schedulingAggressiveness == 'Relajado':
+        prompt_text += "Inserta descansos de 10-15 minutos entre bloques de trabajo. "
+    elif preferences.schedulingAggressiveness == 'Normal':
+        prompt_text += "Inserta breves descansos de 5-10 minutos entre algunos bloques de trabajo. "
+    else: # Compacto
+        prompt_text += "Haz el horario lo más compacto posible, minimizando los descansos. "
+
+    # 4. Agrupación de Tareas
+    if preferences.taskBatching:
+        prompt_text += "Agrupa tareas de la misma categoría de forma consecutiva siempre que sea posible. "
+
+    # 5. Días sin reuniones
+    if preferences.daysNoMeetings:
+        days_str = ", ".join(preferences.daysNoMeetings)
+        prompt_text += (
+            f"Los siguientes días son de descanso total para el usuario: {days_str}. "
+            "Bajo NINGUNA circunstancia debes agendar NINGUNA actividad en estos días. Deben permanecer completamente vacíos. "
+        )
+
+    # --- INSTRUCCIONES FINALES Y LISTA DE ACTIVIDADES ---
+    prompt_text += (
+        "\nAhora, asigna las siguientes actividades a los días y horas más lógicos. "
         "Para las fechas, usa una semana genérica que empiece en Lunes, por ejemplo, del '2024-01-01' (Lunes) al '2024-01-07' (Domingo).\n\n"
         "Actividades del usuario:\n"
     )
     for act in user_activities:
-        # --- ¡CAMBIO CLAVE! ---
-        # Ahora le pasamos la categoría a la IA para que la conozca
         prompt_text += f"- Tarea: {act.name}, Duración: {act.duration} minutos, Prioridad: {act.priority}, Categoría: {act.category}\n"
     
     prompt_text += (
+        "No rellenes los espacios libres del horario con eventos de 'tiempo libre', 'descanso', 'libre', ni ningún bloque genérico. "
+        "Si no hay actividad asignada para un periodo, déjalo vacío (no crees ni devuelvas un evento para ese intervalo). "
         "\nDevuelve SÓLO un array de objetos JSON. Cada objeto debe tener 'title', 'start', 'end' y, MUY IMPORTANTE, 'category'. "
         "La 'category' debe ser una de las que se te proporcionaron (ej: 'estudio', 'ejercicio', 'trabajo', etc.). "
-        "Las fechas deben estar en formato 'YYYY-MM-DDTHH:MM:SS' y corresponder a la semana genérica del 2024-01-01 al 2024-01-07. No añadas texto adicional."
+        "Las fechas deben estar en formato 'YYYY-MM-DDTHH:MM:SS'. No añadas texto adicional fuera del array JSON."
     )
     
     try:

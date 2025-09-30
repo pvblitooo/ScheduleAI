@@ -236,14 +236,22 @@ const handleUpdateSchedule = async () => {
   };
 
   const handlePreferencesChange = (e) => {
-  const { name, value } = e.target;
+  // 1. Extraemos TODAS las propiedades que podríamos necesitar del evento
+  const { name, value, type, checked } = e.target;
 
-  // Si el campo es 'peakHours', simplemente asignamos el valor (que es un array)
-  if (name === 'peakHours') {
-    setPreferences(prev => ({ ...prev, peakHours: value }));
+  // 2. Comprobamos el tipo de campo para decidir cómo actualizar el estado
+  if (name === 'peakHours' || name === 'daysNoMeetings') {
+    // Si el campo es uno de nuestros arrays, usamos su valor directamente
+    setPreferences(prev => ({ ...prev, [name]: value }));
+  } else if (type === 'checkbox') {
+    // Si es un checkbox, el valor que nos importa es 'checked' (true/false)
+    setPreferences(prev => ({ ...prev, [name]: checked }));
+  } else if (name === 'focusBlockDuration' || name === 'startHour' || name === 'endHour') {
+    // Si es una de las duraciones o las horas, lo convertimos a número
+    setPreferences(prev => ({ ...prev, [name]: parseInt(value, 10) }));
   } else {
-    // Para cualquier otro campo (startHour, endHour), lo convertimos a número
-    setPreferences(prev => ({ ...prev, [name]: parseInt(value, 10) || 0 }));
+    // Para todos los demás casos (como los selects con texto), usamos el 'value' tal cual
+    setPreferences(prev => ({ ...prev, [name]: value }));
   }
 };
   const handleEventReceive = (info) => {
