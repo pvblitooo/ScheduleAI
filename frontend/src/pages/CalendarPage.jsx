@@ -33,7 +33,8 @@ const CalendarPage = () => {
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [preferences, setPreferences] = useLocalStorage('userPreferences', { startHour: 8, endHour: 22 });
+  const [preferences, setPreferences] = useLocalStorage('userPreferences', { startHour: 8, endHour: 22, peakHours: [], });
+  
   
   // Estados para la gestión de la rutina actual
   const [currentScheduleId, setCurrentScheduleId] = useState(null);
@@ -235,10 +236,16 @@ const handleUpdateSchedule = async () => {
   };
 
   const handlePreferencesChange = (e) => {
-    const { name, value } = e.target;
-    setPreferences(prev => ({ ...prev, [name]: parseInt(value) }));
-  };
+  const { name, value } = e.target;
 
+  // Si el campo es 'peakHours', simplemente asignamos el valor (que es un array)
+  if (name === 'peakHours') {
+    setPreferences(prev => ({ ...prev, peakHours: value }));
+  } else {
+    // Para cualquier otro campo (startHour, endHour), lo convertimos a número
+    setPreferences(prev => ({ ...prev, [name]: parseInt(value, 10) || 0 }));
+  }
+};
   const handleEventReceive = (info) => {
     const eventExists = schedule.some(event => event.id === info.event.id);
     if (eventExists) {

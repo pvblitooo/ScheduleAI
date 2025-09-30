@@ -7,6 +7,7 @@ import CalendarPage from './pages/CalendarPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SavedSchedulesPage from './pages/SavedSchedulesPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -25,26 +26,14 @@ function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-gray-900 w-full">
         <Routes>
-          {/* Rutas Públicas: solo accesibles si NO hay token */}
           <Route path="/login" element={!token ? <LoginPage handleLogin={handleLogin} /> : <Navigate to="/" />} />
           <Route path="/register" element={!token ? <RegisterPage /> : <Navigate to="/" />} />
-          
-          {/* --- ESTRUCTURA DE RUTA ANIDADA CORRECTA --- */}
-          {/* Esta es la ruta protegida que actúa como layout */}
-          <Route 
-            path="/" 
-            element={token ? <MainLayout handleLogout={handleLogout} /> : <Navigate to="/login" />}
-          >
-            {/* Estas rutas hijas se renderizarán dentro del <Outlet /> de MainLayout */}
-            
-            {/* La ruta 'index' es la que se muestra para el path del padre ('/') */}
+          <Route path="/" element={token ? <MainLayout handleLogout={handleLogout} /> : <Navigate to="/login" />}>
             <Route index element={<DashboardPage />} /> 
-            
-            {/* Las rutas hijas son relativas a la del padre. No necesitan el '/' al principio */}
             <Route path="actividades" element={<ActivitiesPage />} />
             <Route path="calendario" element={<CalendarPage />} />
             <Route path="schedules" element={<SavedSchedulesPage />} />
-            {/* Ruta comodín para cualquier otra cosa dentro de las rutas protegidas */}
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Route>
         </Routes>

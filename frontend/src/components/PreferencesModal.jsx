@@ -3,6 +3,35 @@ import { createPortal } from 'react-dom';
 
 const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesChange }) => {
 
+  // ===== INICIO DE NUEVAS FUNCIONES =====
+
+  // Actualiza un bloque de tiempo existente (inicio o fin)
+  const handlePeakHourChange = (index, field, value) => {
+    const newPeakHours = [...preferences.peakHours];
+    newPeakHours[index] = { ...newPeakHours[index], [field]: value };
+    onPreferencesChange({ target: { name: 'peakHours', value: newPeakHours } });
+  };
+
+  // Añade un nuevo bloque de tiempo vacío
+  const addPeakHour = () => {
+    // Asegúrate de que `preferences.peakHours` no sea null o undefined
+    const currentPeakHours = preferences.peakHours || [];
+    
+    // Crea un array COMPLETAMENTE NUEVO
+    const newPeakHours = [...currentPeakHours, { start: '12:00', end: '13:00' }];
+    
+    // Llama a la función del padre con el nuevo array
+    onPreferencesChange({ target: { name: 'peakHours', value: newPeakHours } });
+  };
+
+  // Elimina un bloque de tiempo por su índice
+  const removePeakHour = (index) => {
+    const newPeakHours = preferences.peakHours.filter((_, i) => i !== index);
+    onPreferencesChange({ target: { name: 'peakHours', value: newPeakHours } });
+  };
+
+  // ===== FIN DE NUEVAS FUNCIONES =====
+
   // Cierra el modal con la tecla 'Escape'
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -73,6 +102,47 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
               className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-inner" 
               min="1" max="24"
             />
+          </div>
+          {/* ===== INICIO DEL NUEVO BLOQUE ===== */}
+          <div>
+            <label className="block text-lg font-semibold text-gray-300 mb-3">
+              Horas de máxima productividad
+            </label>
+            <div className="space-y-3">
+              {/* Mapear y mostrar cada bloque de tiempo existente */}
+              {Array.isArray(preferences.peakHours) && preferences.peakHours.map((range, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <input 
+                    type="time"
+                    value={range.start}
+                    onChange={(e) => handlePeakHourChange(index, 'start', e.target.value)}
+                    className="flex-1 bg-gray-700 border-2 border-gray-600 rounded-lg p-2 text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <span className="text-gray-400 font-bold">-</span>
+                  <input 
+                    type="time"
+                    value={range.end}
+                    onChange={(e) => handlePeakHourChange(index, 'end', e.target.value)}
+                    className="flex-1 bg-gray-700 border-2 border-gray-600 rounded-lg p-2 text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button 
+                    onClick={() => removePeakHour(index)}
+                    className="p-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-bold transition-colors"
+                    aria-label="Eliminar bloque"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+    
+              {/* Botón para añadir un nuevo bloque de tiempo */}
+              <button 
+                onClick={addPeakHour}
+                className="w-full mt-3 bg-green-600 hover:bg-green-700 font-bold py-2 px-4 rounded-lg transition-colors"
+              >
+                + Añadir Bloque
+              </button>
+            </div>
           </div>
         </div>
 

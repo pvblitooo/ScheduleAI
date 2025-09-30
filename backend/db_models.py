@@ -10,6 +10,7 @@ users = Table(
     Column("id", Integer, primary_key=True),
     Column("email", String, unique=True, index=True),
     Column("hashed_password", String, nullable=False),
+    
     # Aquí añadiremos más campos del perfil en el futuro
 )
 

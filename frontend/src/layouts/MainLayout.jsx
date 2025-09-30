@@ -35,6 +35,7 @@ const MainLayout = ({ handleLogout }) => {
                   <NavLink to="/actividades" className={linkClasses}>Actividades</NavLink>
                   <NavLink to="/calendario" className={linkClasses}>Calendario</NavLink>
                   <NavLink to="/schedules" className={linkClasses}>Rutinas</NavLink>
+                  <NavLink to="/profile" className={linkClasses}>Mi Perfil</NavLink>
                 </div>
               </div>
             </div>
@@ -75,6 +76,7 @@ const MainLayout = ({ handleLogout }) => {
               <NavLink to="/actividades" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Actividades</NavLink>
               <NavLink to="/calendario" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Calendario</NavLink>
               <NavLink to="/schedules" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Rutinas</NavLink>
+              <NavLink to="/profile" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Mi Perfil</NavLink>
             </div>
             <div className="pt-4 pb-3 border-t border-gray-700 px-2 sm:px-3">
               <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="w-full text-left bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-md transition-colors">

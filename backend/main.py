@@ -52,6 +52,9 @@ class UserInDB(User):
     """Modelo completo del usuario como existe en la base de datos, incluyendo la contraseña hasheada."""
     hashed_password: str
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 # --- MODELOS DE ACTIVIDADES Y PREFERENCIAS ---
 
@@ -75,11 +78,16 @@ class Activity(ActivityBase):
     id: int
     owner_id: int
 
+class PeakHourRange(BaseModel):
+    """Define un único bloque de tiempo de máxima productividad."""
+    start: str
+    end: str
 
 class UserPreferences(BaseModel):
     """Modelo para las preferencias del usuario al generar un horario."""
     startHour: int = 8
     endHour: int = 22
+    peakHours: List[PeakHourRange] = []
 
 class ScheduleAnalysisRequest(BaseModel):
     events: List[Dict[str, Any]]
@@ -184,6 +192,32 @@ async def delete_activity(activity_id: int, user: Annotated[User, Depends(get_cu
     await database.execute(delete_query)
     return
 
+@app.post("/users/me/change-password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    request: ChangePasswordRequest,
+    user: Annotated[UserInDB, Depends(get_current_user)]
+):
+    # 1. Verificar que la contraseña actual es correcta
+    if not verify_password(request.current_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La contraseña actual es incorrecta.",
+        )
+    
+    # 2. Hashear la nueva contraseña
+    new_hashed_password = get_password_hash(request.new_password)
+    
+    # 3. Actualizar la contraseña en la base de datos
+    query = (
+        users.update()
+        .where(users.c.id == user.id)
+        .values(hashed_password=new_hashed_password)
+    )
+    await database.execute(query)
+    
+    # No devolvemos contenido, el código de estado 204 es suficiente
+    return
+
 # --- ¡NUEVOS ENDPOINTS CRUD PARA RUTINAS! ---
 @app.post("/schedules/", response_model=Schedule, status_code=status.HTTP_201_CREATED)
 async def create_schedule(schedule_data: ScheduleCreate, user: Annotated[User, Depends(get_current_user)]):
@@ -266,10 +300,24 @@ async def generate_schedule(preferences: UserPreferences, user: Annotated[User, 
     user_activities = await read_activities(user)
     if not user_activities: return []
 
-    # --- ¡NUEVO PROMPT ENFOCADO EN PLANTILLA! ---
+    # --- PROMPT MEJORADO CON PREFERENCIAS ---
     prompt_text = (
-        f"Eres un experto en productividad. Tu objetivo es crear la **plantilla de horario semanal ideal y repetible** para un usuario, de Lunes a Domingo. "
+        f"Eres un experto en productividad. Tu objetivo es crear la plantilla de horario semanal ideal y repetible para un usuario, de Lunes a Domingo. "
         f"El horario de cada día debe ir desde las {preferences.startHour}:00 hasta las {preferences.endHour}:00. "
+    )
+
+    # --- ¡NUEVO BLOQUE PARA HORAS PICO! ---
+    if preferences.peakHours:
+        # Formateamos los bloques de tiempo para que la IA los entienda fácilmente
+        peak_hours_str_list = [f"de {p.start} a {p.end}" for p in preferences.peakHours]
+        peak_hours_str = " y ".join(peak_hours_str_list)
+        prompt_text += (
+            f"El usuario es más productivo en los siguientes bloques horarios: {peak_hours_str}. "
+            "Debes intentar asignar las tareas de alta prioridad o que requieran más concentración (como 'estudio' o 'trabajo') en estos periodos. "
+        )
+    # --- FIN DEL NUEVO BLOQUE ---
+
+    prompt_text += (
         "Asigna las siguientes actividades a los días y horas más lógicos para maximizar la productividad y el bienestar. "
         "Para las fechas, usa una semana genérica que empiece en Lunes, por ejemplo, del '2024-01-01' (Lunes) al '2024-01-07' (Domingo).\n\n"
         "Actividades del usuario:\n"
