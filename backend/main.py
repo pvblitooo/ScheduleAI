@@ -40,13 +40,20 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Modelo para la creación de un nuevo usuario, añade la contraseña."""
-    password: str
-
+    first_name: str
+    last_name: str
+    password: str = Field(..., min_length=8)
 
 class User(UserBase):
     """Modelo para representar a un usuario que se devuelve desde la API."""
     id: int
+    first_name: str
+    last_name: str
 
+class UserUpdate(BaseModel):
+    """Modelo para recibir los datos a actualizar del usuario."""
+    first_name: str
+    last_name: str
 
 class UserInDB(User):
     """Modelo completo del usuario como existe en la base de datos, incluyendo la contraseña hasheada."""
@@ -111,6 +118,7 @@ class Schedule(ScheduleBase):
     id: int
     created_at: datetime
     owner_id: int
+    is_active: bool = Field(default=False)
 
 # --- FUNCIONES AUTH ---
 def verify_password(p, h): return pwd_context.verify(p, h)
@@ -162,11 +170,38 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 
 @app.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
 async def register(user: UserCreate):
-    if await get_user_from_db(user.email): raise HTTPException(status.HTTP_400_BAD_REQUEST, "El correo ya está registrado.")
-    hp = get_password_hash(user.password)
-    q = users.insert().values(email=user.email, hashed_password=hp)
-    user_id = await database.execute(q)
-    return User(id=user_id, email=user.email)
+    """
+    Registra un nuevo usuario en la base de datos.
+    Valida que el email no exista y que la contraseña cumpla con el largo mínimo.
+    """
+    # 1. Verificar si el usuario ya existe
+    if await get_user_from_db(user.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El correo electrónico ya está registrado."
+        )
+    
+    # 2. Hashear la contraseña (la validación de longitud ya la hizo Pydantic)
+    hashed_password = get_password_hash(user.password)
+    
+    # 3. Crear la consulta de inserción con los nuevos campos
+    query = users.insert().values(
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+        hashed_password=hashed_password
+    )
+    
+    # 4. Ejecutar la consulta para guardar el usuario
+    user_id = await database.execute(query)
+    
+    # 5. Devolver el usuario creado (sin la contraseña)
+    return User(
+        id=user_id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email
+    )
 
 @app.post("/activities/", response_model=Activity)
 async def create_activity(activity: ActivityCreate, user: Annotated[User, Depends(get_current_user)]):
@@ -198,6 +233,44 @@ async def delete_activity(activity_id: int, user: Annotated[User, Depends(get_cu
     delete_query = activities.delete().where(activities.c.id == activity_id)
     await database.execute(delete_query)
     return
+
+@app.get("/users/me", response_model=User)
+async def read_users_me(current_user: Annotated[User, Depends(get_current_user)]):
+    """
+    Obtiene el perfil completo del usuario actualmente autenticado.
+    """
+    # Gracias a la dependencia get_current_user y el response_model=User,
+    # FastAPI se encarga de devolver los datos correctos automáticamente.
+    return current_user
+
+
+@app.put("/users/me", response_model=User)
+async def update_user_me(
+    user_update: UserUpdate,
+    current_user: Annotated[UserInDB, Depends(get_current_user)],
+):
+    """
+    Actualiza el nombre y apellido del usuario actual en la base de datos.
+    """
+    # Construimos la consulta de actualización
+    query = (
+        users.update()
+        .where(users.c.id == current_user.id)
+        .values(
+            first_name=user_update.first_name,
+            last_name=user_update.last_name,
+        )
+    )
+    # Ejecutamos la consulta
+    await database.execute(query)
+
+    # Devolvemos el objeto de usuario actualizado para confirmar los cambios
+    return User(
+        id=current_user.id,
+        email=current_user.email,
+        first_name=user_update.first_name,
+        last_name=user_update.last_name,
+    )
 
 @app.post("/users/me/change-password", status_code=status.HTTP_204_NO_CONTENT)
 async def change_password(
@@ -231,7 +304,8 @@ async def create_schedule(schedule_data: ScheduleCreate, user: Annotated[User, D
     query = schedules.insert().values(
         name=schedule_data.name,
         events=json.dumps(schedule_data.events),
-        owner_id=user.id
+        owner_id=user.id,
+        is_active=False
     )
     schedule_id = await database.execute(query)
     
@@ -291,6 +365,64 @@ async def update_schedule(schedule_id: int, schedule_data: ScheduleCreate, user:
     
     return response_data
 
+@app.post("/schedules/{schedule_id}/set-active", status_code=status.HTTP_204_NO_CONTENT)
+async def set_active_schedule(schedule_id: int, user: Annotated[User, Depends(get_current_user)]):
+    """
+    Establece una rutina como la activa para el usuario.
+    Esto desactiva automáticamente cualquier otra rutina que el usuario pudiera tener activa.
+    """
+    async with database.transaction():
+        # Paso A: Verificar que la rutina que se quiere activar realmente pertenece al usuario.
+        # Esto es una medida de seguridad crucial.
+        check_query = schedules.select().where(
+            schedules.c.id == schedule_id, 
+            schedules.c.owner_id == user.id
+        )
+        schedule_to_activate = await database.fetch_one(check_query)
+
+        if not schedule_to_activate:
+            raise HTTPException(status_code=404, detail="Rutina no encontrada o no pertenece al usuario.")
+
+        # Paso B: Poner 'is_active = False' en TODAS las rutinas de este usuario.
+        # Es la forma más simple y segura de "limpiar" el estado anterior.
+        deactivate_query = schedules.update().where(
+            schedules.c.owner_id == user.id
+        ).values(is_active=False)
+        await database.execute(deactivate_query)
+        
+        # Paso C: Poner 'is_active = True' únicamente en la rutina seleccionada.
+        activate_query = schedules.update().where(
+            schedules.c.id == schedule_id
+        ).values(is_active=True)
+        await database.execute(activate_query)
+
+    # No se devuelve contenido, el código 204 "No Content" es suficiente
+    # para que el frontend sepa que la operación fue exitosa.
+    return
+
+@app.get("/schedules/active/", response_model=Schedule)
+async def get_active_schedule(user: Annotated[User, Depends(get_current_user)]):
+    """
+    Obtiene la rutina que el usuario ha marcado como activa.
+    """
+    query = schedules.select().where(
+        schedules.c.owner_id == user.id,
+        schedules.c.is_active == True
+    ).limit(1)
+    
+    active_schedule_record = await database.fetch_one(query)
+    
+    if not active_schedule_record:
+        # Si no hay ninguna rutina activa, lanzamos un error 404.
+        # El frontend se encargará de gestionar este caso.
+        raise HTTPException(status_code=404, detail="No active schedule found for the user.")
+
+    # Procesamos el registro para devolverlo en el formato correcto
+    schedule_dict = dict(active_schedule_record)
+    # Asumimos que los eventos están guardados como un string JSON
+    schedule_dict["events"] = json.loads(schedule_dict["events"])
+    
+    return schedule_dict
 
 @app.delete("/schedules/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_schedule(schedule_id: int, user: Annotated[User, Depends(get_current_user)]):

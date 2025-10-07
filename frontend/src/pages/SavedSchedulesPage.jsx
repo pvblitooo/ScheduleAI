@@ -9,6 +9,17 @@ import ActionModal from '../components/ActionModal';
 import interactionPlugin from '@fullcalendar/interaction';
 import EventModal from '../components/EventModal';
 
+const StarIcon = ({ isActive }) => (
+  <svg 
+    className={`w-6 h-6 transition-colors duration-200 ${isActive ? 'text-yellow-400' : 'text-gray-500 hover:text-gray-300'}`} 
+    fill="currentColor" 
+    viewBox="0 0 20 20"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.96a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.287 3.96c.3.921-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.175 0l-3.366 2.446c-.784.57-1.838-.197-1.539-1.118l1.287-3.96a1 1 0 00-.364-1.118L2.07 9.387c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.96z" />
+  </svg>
+);
+
 // Reutilizamos la función de colores que ya tenemos
 const getColorForCategory = (category) => {
   switch (category) {
@@ -42,20 +53,33 @@ const SavedSchedulesPage = () => {
   
   // Función para cargar las rutinas (para reutilizarla después de borrar)
   const fetchSchedules = async () => {
-    try {
-      const response = await apiClient.get('/schedules/');
-      setSavedSchedules(response.data);
-    } catch (error) {
-      console.error('Error al cargar las rutinas:', error);
-    }
-  };
+        try {
+            const response = await apiClient.get('/schedules/');
+            // Ordenamos: la rutina activa (is_active: true) va primero.
+            const sortedSchedules = response.data.sort((a, b) => b.is_active - a.is_active);
+            setSavedSchedules(sortedSchedules);
+        } catch (error) {
+            console.error('Error al cargar las rutinas:', error);
+        }
+    };
 
   useEffect(() => {
     fetchSchedules();
   }, []);
 
-  // --- ¡FUNCIÓN MODIFICADA! ---
-  // Ahora usa el ActionModal en lugar de window.confirm
+  // --- NUEVO --- Función para manejar la activación de una rutina
+    const handleSetActive = async (scheduleId) => {
+        try {
+            await apiClient.post(`/schedules/${scheduleId}/set-active`);
+            // Vuelve a cargar las rutinas para reflejar el cambio (y el nuevo orden)
+            fetchSchedules(); 
+            setActionModal({ isOpen: true, title: "Éxito", message: "Rutina activada." });
+        } catch (error) {
+            console.error("Error al activar la rutina:", error);
+            setActionModal({ isOpen: true, title: "Error", message: "No se pudo activar la rutina." });
+        }
+    };
+
   const handleDeleteSchedule = (scheduleId, scheduleName) => {
     setActionModal({
       isOpen: true,
@@ -172,13 +196,12 @@ const handleUpdateSchedule = async () => {
     }
 };
 
-  return (
+return (
     <>
       {/* --- CONTENEDOR PRINCIPAL RESPONSIVO --- */}
       <div className="flex flex-col lg:flex-row gap-6 p-4 md:p-8 text-white h-[calc(100vh-6rem)]">
         
         {/* --- Panel Izquierdo (Lista de Rutinas) --- */}
-        {/* En móvil ocupa 1/3 de la altura, en desktop es una columna completa */}
         <div className="lg:w-1/3 xl:w-1/4 flex flex-col bg-gray-800 p-6 rounded-xl shadow-lg h-1/3 lg:h-full">
           <h2 className="text-2xl font-bold mb-6 flex-shrink-0">Mis Rutinas</h2>
           <ul className="flex-grow overflow-y-auto space-y-3 -mr-2 pr-2 simple-scrollbar">
@@ -192,9 +215,24 @@ const handleUpdateSchedule = async () => {
                   : 'bg-gray-700 hover:bg-gray-600'
                 }`}
               >
-                <p className="font-semibold text-lg truncate flex-grow">
-                  {schedule.name}
-                </p>
+                {/* --- NUEVO: Contenedor para estrella y nombre --- */}
+                <div className="flex items-center gap-3 flex-grow min-w-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSetActive(schedule.id);
+                    }}
+                    title={schedule.is_active ? "Esta es tu rutina activa" : "Marcar como activa"}
+                    className="flex-shrink-0 focus:outline-none"
+                  >
+                    <StarIcon isActive={schedule.is_active} />
+                  </button>
+                  <p className="font-semibold text-lg truncate" title={schedule.name}>
+                    {schedule.name}
+                  </p>
+                </div>
+
+                {/* Botón de eliminar (tu código original, sin cambios) */}
                 <div className="flex-shrink-0 ml-4">
                   <button
                     onClick={(e) => {
@@ -212,8 +250,8 @@ const handleUpdateSchedule = async () => {
           </ul>
         </div>
 
-        {/* --- Panel Derecho (Calendario y Acciones) --- */}
-        {/* En móvil ocupa el espacio restante, en desktop es una columna completa */}
+
+        {/* --- Panel Derecho (Calendario y Acciones) --- (Sin cambios) */}
         <div className="flex-grow flex flex-col gap-6 min-h-0">
           
           {/* Panel de Control */}
@@ -233,31 +271,25 @@ const handleUpdateSchedule = async () => {
             </div>
           )}
 
+
           {/* Calendario */}
           <div className={`flex-grow bg-white text-gray-800 rounded-xl shadow-2xl p-1 sm:p-2 md:p-4 min-h-0 ${!selectedSchedule && 'flex items-center justify-center'}`}>
             {selectedSchedule ? (
               <FullCalendar
-                // --- CONFIGURACIÓN UNIFICADA ---
-            plugins={[timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek" // La vista semanal que te gusta
-            headerToolbar={false} // Sin cabecera superior
-            allDaySlot={false} // Sin la fila de "todo el día"
-            locale="es" // En español
-            firstDay={1} // Lunes como primer día
-            height="100%" // Ocupa toda la altura disponible
-            
-            // --- PROPS PARA LA APARIENCIA CORRECTA ---
-            dayHeaderFormat={{ weekday: 'long' }} // Muestra solo "lunes", "martes", etc.
-            nowIndicator={false} // Oculta el indicador de la hora actual
-            slotMinTime="05:00:00" // Hora de inicio del calendario
-            slotMaxTime="23:00:00" // Hora de fin
-            initialDate='2024-01-01' // Una fecha fija para que no muestre la de "hoy"
-
-            // --- PROPS PARA LA INTERACCIÓN ---
-            events={calendarEvents}
-            editable={true}
-            eventClick={handleEventClick}
-            eventChange={handleEventChange}
+                plugins={[timeGridPlugin, interactionPlugin]}
+                initialView="timeGridWeek"
+                headerToolbar={false}
+                allDaySlot={false}
+                locale="es"
+                firstDay={1}
+                height="100%"
+                slotMinTime="05:00:00"
+                slotMaxTime="23:00:00"
+                initialDate='2024-01-01'
+                events={calendarEvents}
+                editable={true}
+                eventClick={handleEventClick}
+                eventChange={handleEventChange}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center p-8">
@@ -270,7 +302,8 @@ const handleUpdateSchedule = async () => {
         </div>
       </div>
 
-      {/* --- MODALES --- */}
+
+      {/* --- MODALES --- (Sin cambios) */}
       <EventModal
           isOpen={eventModalIsOpen}
           onRequestClose={() => setEventModalIsOpen(false)}

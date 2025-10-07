@@ -19,7 +19,11 @@ const EyeSlashIcon = ({ className }) => (
 
 const ProfilePage = () => {
   // --- ESTADOS ---
-  const [profile, setProfile] = useState({ fullName: '', email: '' });
+  const [profile, setProfile] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+  });
   const [passwords, setPasswords] = useState({
     currentPassword: '',
     newPassword: '',
@@ -30,19 +34,22 @@ const ProfilePage = () => {
 
   // --- EFECTOS ---
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    const fetchProfile = async () => {
       try {
-        const decodedToken = jwtDecode(token);
-        const savedUser = JSON.parse(localStorage.getItem('user')) || {};
+        const response = await apiClient.get('/users/me');
+        const userData = response.data;
         setProfile({
-          fullName: savedUser.fullName || 'Añade tu nombre',
-          email: decodedToken.sub,
+          first_name: userData.first_name || '',
+          last_name: userData.last_name || '',
+          email: userData.email || '',
         });
       } catch (error) {
-        console.error("Error decodificando el token:", error);
+        console.error("Error al cargar el perfil:", error);
+        setActionModal({ isOpen: true, title: 'Error', message: 'No se pudo cargar tu perfil. Intenta recargar la página.' });
       }
-    }
+    };
+
+    fetchProfile();
   }, []);
 
   // --- MANEJADORES DE CAMBIOS ---
@@ -55,10 +62,17 @@ const ProfilePage = () => {
   };
 
   // --- MANEJADORES DE ACCIONES ---
-  const handleSaveChanges = () => {
-    const currentUser = JSON.parse(localStorage.getItem('user')) || {};
-    localStorage.setItem('user', JSON.stringify({ ...currentUser, fullName: profile.fullName }));
-    setActionModal({ isOpen: true, title: 'Éxito', message: 'Tu nombre ha sido actualizado.' });
+  const handleSaveChanges = async () => {
+    try {
+      await apiClient.put('/users/me', {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+      });
+      setActionModal({ isOpen: true, title: 'Éxito', message: 'Tu perfil ha sido actualizado correctamente.' });
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || 'No se pudo actualizar tu perfil.';
+      setActionModal({ isOpen: true, title: 'Error', message: errorMessage });
+    }
   };
 
   const handleChangePassword = async (e) => {
@@ -95,37 +109,54 @@ const ProfilePage = () => {
       <div className="text-white max-w-4xl mx-auto p-4 md:p-8">
         <h1 className="text-4xl font-bold mb-8">Mi Perfil</h1>
 
-        {/* --- SECCIÓN DE DATOS PERSONALES --- */}
+        {/* --- SECCIÓN DE DATOS PERSONALES (MODIFICADA) --- */}
         <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
           <h2 className="text-2xl font-semibold mb-6">Información de la Cuenta</h2>
           
-          <div className="mb-4">
-            <label htmlFor="fullName" className="block text-gray-400 mb-2">Nombre Completo</label>
-            <input
-              type="text"
-              id="fullName"
-              name="fullName"
-              className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
-              value={profile.fullName}
-              onChange={handleProfileChange}
-              placeholder="Tu nombre completo"
-            />
+          {/* Campos para Nombre y Apellido */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+            <div>
+              <label htmlFor="first_name" className="block text-gray-400 mb-2">Nombre</label>
+              <input
+                type="text"
+                id="first_name"
+                name="first_name"
+                className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
+                value={profile.first_name}
+                onChange={handleProfileChange}
+                placeholder="Tu nombre"
+              />
+            </div>
+            <div>
+              <label htmlFor="last_name" className="block text-gray-400 mb-2">Apellido</label>
+              <input
+                type="text"
+                id="last_name"
+                name="last_name"
+                className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
+                value={profile.last_name}
+                onChange={handleProfileChange}
+                placeholder="Tu apellido"
+              />
+            </div>
           </div>
           
-          <div className="mb-4">
+          {/* Campo de Correo Electrónico (no editable) */}
+          <div className="mb-6">
             <label className="block text-gray-400 mb-2">Correo Electrónico</label>
             <p className="bg-gray-900 p-3 rounded-lg text-gray-300">{profile.email}</p>
           </div>
 
+          {/* Botón para guardar los cambios del perfil */}
           <button 
             onClick={handleSaveChanges}
             className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 font-bold py-2 px-6 rounded-lg transition-colors"
           >
-            Guardar Nombre
+            Guardar Cambios
           </button>
         </div>
 
-        {/* --- SECCIÓN CAMBIAR CONTRASEÑA (MODIFICADA) --- */}
+        {/* --- SECCIÓN CAMBIAR CONTRASEÑA (sin cambios en la estructura) --- */}
         <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
           <h2 className="text-2xl font-semibold mb-6">Cambiar Contraseña</h2>
           <form onSubmit={handleChangePassword} className="space-y-4">
@@ -154,7 +185,7 @@ const ProfilePage = () => {
                 className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 mt-2 pr-10" required
               />
               <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center">
-                 {showPasswords ? <EyeSlashIcon className="h-5 w-5 text-gray-400"/> : <EyeIcon className="h-5 w-5 text-gray-400"/>}
+                {showPasswords ? <EyeSlashIcon className="h-5 w-5 text-gray-400"/> : <EyeIcon className="h-5 w-5 text-gray-400"/>}
               </button>
             </div>
 
@@ -168,7 +199,7 @@ const ProfilePage = () => {
                 className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 mt-2 pr-10" required
               />
               <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center">
-                 {showPasswords ? <EyeSlashIcon className="h-5 w-5 text-gray-400"/> : <EyeIcon className="h-5 w-5 text-gray-400"/>}
+                {showPasswords ? <EyeSlashIcon className="h-5 w-5 text-gray-400"/> : <EyeIcon className="h-5 w-5 text-gray-400"/>}
               </button>
             </div>
             
@@ -186,7 +217,7 @@ const ProfilePage = () => {
         title={actionModal.title}
         message={actionModal.message}
         showConfirmButton={false} // Oculta el botón de "Confirmar"
-        isInfoOnly={true}          // Estilo para solo mostrar información
+        isInfoOnly={true}       // Estilo para solo mostrar información
       />
     </>
   );
