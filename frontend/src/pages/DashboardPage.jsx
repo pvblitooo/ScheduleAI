@@ -126,7 +126,8 @@ const DashboardPage = () => {
     <div className="p-4 sm:p-8 space-y-8 text-white">
       
       {/* --- SALUDO (ARRIBA) --- */}
-      {!isLoading && !error && userName && (
+      {/* Este saludo se muestra siempre que tengamos el nombre del usuario */}
+      {!isLoading && userName && (
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">
             ¡Hola, <span className="text-purple-400">{userName}</span>!
@@ -145,17 +146,20 @@ const DashboardPage = () => {
           <div className="text-center p-10 text-gray-400">Cargando dashboard...</div>
         )}
 
-        {!isLoading && error && (
-          <div className="text-center p-10 bg-gray-800 rounded-xl">
-            <h2 className="text-2xl font-bold text-red-500 mb-4">Atención</h2>
-            <p className="text-gray-300">{error}</p>
+        {/* SI NO hay rutina activa, muestra el mensaje de bienvenida */}
+        {!isLoading && !activeSchedule && (
+          <div className="text-center p-10 bg-gray-800 rounded-xl max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold text-purple-400 mb-4">¡Bienvenido a tu Dashboard!</h2>
+            <p className="text-gray-300">
+              Actualmente no tienes una rutina activa. Cuando actives una, aquí podrás ver tu agenda del día y la distribución de tus actividades.
+            </p>
           </div>
         )}
 
-        {!isLoading && !error && activeSchedule && (
+        {/* SI SÍ hay rutina activa, muestra el dashboard completo */}
+        {!isLoading && activeSchedule && (
           <>
             <DailySummary events={todaysEvents} />
-
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Columna Izquierda: Agenda para Hoy */}
               <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
@@ -206,13 +210,15 @@ const DashboardPage = () => {
                 )}
               </div>
             </div>
-
-            {/* --- SECCIÓN DE ACCIONES (AHORA AL FINAL) --- */}
-            <div className="text-center pt-12 mt-8 border-t border-gray-700/50">
-                <h2 className="text-2xl font-semibold mb-6 text-gray-300">¿Qué quieres hacer ahora?</h2>
-                <ActionButtons />
-            </div>
           </>
+        )}
+
+        {/* --- SECCIÓN DE ACCIONES (SIEMPRE VISIBLE, excepto cargando) --- */}
+        {!isLoading && (
+          <div className="text-center pt-12 mt-8 border-t border-gray-700/50">
+            <h2 className="text-2xl font-semibold mb-6 text-gray-300">¿Qué quieres hacer ahora?</h2>
+            <ActionButtons />
+          </div>
         )}
       </div>
     </div>

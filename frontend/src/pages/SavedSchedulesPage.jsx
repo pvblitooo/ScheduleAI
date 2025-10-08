@@ -290,6 +290,7 @@ return (
                 editable={true}
                 eventClick={handleEventClick}
                 eventChange={handleEventChange}
+                dayHeaderFormat={{ weekday: 'long' }}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center p-8">
