@@ -385,8 +385,9 @@ const handleUpdateSchedule = async () => {
       )}
 
       {/* Contenedor del Calendario */}
-      <div className="bg-white text-gray-800 rounded-xl shadow-2xl p-1 sm:p-2 md:p-4">
-        <FullCalendar
+      <div className={`bg-white text-gray-800 rounded-xl shadow-2xl p-1 sm:p-2 md:p-4 min-h-[70vh] ${schedule.length === 0 && 'flex items-center justify-center'}`}>
+        {schedule.length > 0 ? (
+          <FullCalendar
           key={calendarKey}
           plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
           editable={true}
@@ -407,6 +408,16 @@ const handleUpdateSchedule = async () => {
           height="auto" // El calendario se adapta a la altura del contenido
           eventClick={handleEventClick}
         />
+        ) : (
+          // Si NO hay eventos en 'schedule', muestra el mensaje (similar a tu página de Rutinas)
+          <div className="flex flex-col items-center justify-center text-center text-gray-500 p-8">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-xl font-semibold">Genera una rutina para empezar</p>
+            <p className="mt-1 text-gray-400">Usa el botón "Crear Nueva Rutina" para que tu horario aparezca aquí.</p>
+          </div>
+          )}
       </div>
     </div>
       

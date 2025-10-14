@@ -1,6 +1,6 @@
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, JSON, DateTime, Boolean
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 
 metadata = MetaData()
 
@@ -26,6 +26,8 @@ activities = Table(
     Column("priority", String, nullable=False),  # ej: "alta", "media", "baja"
     Column("frequency", String),                 # ej: "única", "diaria"
     Column("category", String(50), nullable=False),  # <-- ¡NUEVA COLUMNA!
+    Column("is_recurrent", Boolean, default=False, nullable=False),
+    Column("recurrent_days", JSONB, nullable=True), # Guarda la lista de días, ej: [1, 3, 5]
     Column("owner_id", Integer, ForeignKey("users.id"), nullable=False),
 )
 
@@ -38,4 +40,4 @@ schedules = Table(
     Column("created_at", DateTime(timezone=True), server_default=func.now()),
     Column("owner_id", Integer, ForeignKey("users.id"), nullable=False),
     Column("is_active", Boolean, default=False, nullable=False),
-)
+) 

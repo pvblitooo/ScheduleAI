@@ -73,7 +73,8 @@ class ActivityBase(BaseModel):
     # La categoría ahora es un campo obligatorio.
     category: str
     frequency: str | None = None
-
+    is_recurrent: bool = False
+    recurrent_days: List[int] | None = None # Acepta una lista de enteros o null
 
 class ActivityCreate(ActivityBase):
     """Modelo para crear una nueva actividad. No añade campos nuevos, solo hereda."""
@@ -439,69 +440,72 @@ async def generate_schedule(preferences: UserPreferences, user: Annotated[User, 
     user_activities = await read_activities(user)
     if not user_activities: return []
 
-    # --- INICIO DE LA CONSTRUCCIÓN DEL PROMPT ---
+    # 1. SEPARAMOS LAS ACTIVIDADES EN DOS GRUPOS: FIJAS Y FLEXIBLES
+    recurrent_activities = [act for act in user_activities if act.is_recurrent and act.recurrent_days]
+    non_recurrent_activities = [act for act in user_activities if not act.is_recurrent]
+
+    # --- INICIO DE LA CONSTRUCCIÓN DEL PROMPT MEJORADO ---
     prompt_text = (
-        f"Eres un experto en productividad. Tu objetivo es crear la plantilla de horario semanal ideal y repetible para un usuario, de Lunes a Domingo. "
-        f"El horario de cada día debe ir desde las {preferences.startHour}:00 hasta las {preferences.endHour}:00. "
+        f"Eres un planificador de élite llamado ScheduleAI. Tu misión es crear una plantilla de horario semanal perfecta y optimizada para un usuario, de Lunes a Domingo. "
+        f"El horario de cada día debe empezar a las {preferences.startHour}:00 y terminar a las {preferences.endHour}:00. "
+        "Usa una semana genérica, por ejemplo, del '2024-01-01' (Lunes) al '2024-01-07' (Domingo).\n"
     )
 
-    # --- AÑADIMOS LAS NUEVAS PREFERENCIAS AL TEXTO ---
+    # --- SECCIÓN 1: COMPROMISOS FIJOS (RECURRENTES) ---
+    if recurrent_activities:
+        days_map = {1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves", 5: "Viernes", 6: "Sábado", 7: "Domingo"}
+        prompt_text += (
+            "\n--- PASO 1: BLOQUEA LOS COMPROMISOS FIJOS ---\n"
+            "Primero, agenda los siguientes compromisos. Estos son OBLIGATORIOS e INAMOVIBLES. "
+            "Debes colocarlos en un horario razonable DENTRO de los días especificados. No puedes cambiarlos de día ni ignorarlos.\n"
+        )
+        for act in recurrent_activities:
+            day_names = ", ".join([days_map.get(d, f"Día {d}") for d in act.recurrent_days])
+            prompt_text += f"- Actividad FIJA: '{act.name}' ({act.category}) de {act.duration} minutos. Debe ocurrir los días: {day_names}.\n"
 
-    # 1. Horas Pico (ya lo tenías)
+    # --- SECCIÓN 2: TAREAS FLEXIBLES A ORGANIZAR ---
+    if non_recurrent_activities:
+        prompt_text += (
+            "\n--- PASO 2: ORGANIZA LAS TAREAS FLEXIBLES ---\n"
+            "Ahora, en los huecos libres que quedan, distribuye inteligentemente las siguientes tareas flexibles. "
+            "Optimiza su ubicación según las preferencias de productividad del usuario.\n"
+        )
+        for act in non_recurrent_activities:
+            prompt_text += f"- Tarea flexible: '{act.name}' ({act.category}), Duración: {act.duration} minutos, Prioridad: {act.priority}.\n"
+    elif recurrent_activities:
+        prompt_text += "\nNo hay tareas flexibles que organizar. El horario debe contener únicamente los compromisos fijos ya mencionados.\n"
+    else:
+        # Este caso es por si no hay ninguna actividad en total
+        prompt_text += "\nNo hay actividades para agendar.\n"
+
+
+    # --- SECCIÓN 3: APLICA LAS PREFERENCIAS DE PRODUCTIVIDAD ---
+    prompt_text += "\n--- PASO 3: APLICA LAS PREFERENCIAS DEL USUARIO ---\n"
     if preferences.peakHours:
-        peak_hours_str_list = [f"de {p.start} a {p.end}" for p in preferences.peakHours]
-        peak_hours_str = " y ".join(peak_hours_str_list)
-        prompt_text += (
-            f"El usuario es más productivo en los siguientes bloques horarios: {peak_hours_str}. "
-            "Debes intentar asignar las tareas de alta prioridad o que requieran más concentración (como 'estudio' o 'trabajo') en estos periodos. "
-        )
-
-    # 2. Arquetipo de Productividad
+        peak_hours_str = ", ".join([f"de {p.start} a {p.end}" for p in preferences.peakHours])
+        prompt_text += f"- Horas pico de energía: {peak_hours_str}. Usa estos bloques para las tareas de alta prioridad o que requieran más concentración.\n"
     if preferences.productivityArchetype:
-        prompt_text += (
-            f"El arquetipo de productividad del usuario es '{preferences.productivityArchetype}'. "
-            f"Usa esto como guía: si es 'Madrugador', pon las tareas importantes por la mañana; si es 'Nocturno', por la tarde/noche. "
-        )
-
-    # 3. Bloques de enfoque y agresividad
-    prompt_text += (
-        f"El usuario prefiere trabajar en bloques de enfoque de {preferences.focusBlockDuration} minutos. "
-        f"Debes dividir las tareas largas en bloques de esta duración (ej: 'Tarea Parte 1/2'). "
-    )
+        prompt_text += f"- Arquetipo de energía: '{preferences.productivityArchetype}'. Adapta el horario a este patrón (ej: tareas pesadas por la mañana para 'Madrugador').\n"
+    prompt_text += f"- Bloques de enfoque: Divide las tareas largas en bloques de trabajo de {preferences.focusBlockDuration} minutos.\n"
     if preferences.schedulingAggressiveness == 'Relajado':
-        prompt_text += "Inserta descansos de 10-15 minutos entre bloques de trabajo. "
-    elif preferences.schedulingAggressiveness == 'Normal':
-        prompt_text += "Inserta breves descansos de 5-10 minutos entre algunos bloques de trabajo. "
-    else: # Compacto
-        prompt_text += "Haz el horario lo más compacto posible, minimizando los descansos. "
-
-    # 4. Agrupación de Tareas
+        prompt_text += "- Estilo de horario: 'Relajado'. Inserta descansos de 10-15 minutos entre bloques de trabajo intenso.\n"
+    elif preferences.schedulingAggressiveness == 'Compacto':
+        prompt_text += "- Estilo de horario: 'Compacto'. Minimiza los descansos para un horario más denso.\n"
+    else:
+        prompt_text += "- Estilo de horario: 'Normal'. Inserta pequeños descansos de 5-10 minutos cuando sea lógico.\n"
     if preferences.taskBatching:
-        prompt_text += "Agrupa tareas de la misma categoría de forma consecutiva siempre que sea posible. "
-
-    # 5. Días sin reuniones
+        prompt_text += "- Agrupación de tareas: Siempre que sea posible, agrupa tareas de la misma categoría de forma consecutiva.\n"
     if preferences.daysNoMeetings:
         days_str = ", ".join(preferences.daysNoMeetings)
-        prompt_text += (
-            f"Los siguientes días son de descanso total para el usuario: {days_str}. "
-            "Bajo NINGUNA circunstancia debes agendar NINGUNA actividad en estos días. Deben permanecer completamente vacíos. "
-        )
+        prompt_text += f"- Días de descanso TOTAL: {days_str}. NO AGREGUES NINGUNA ACTIVIDAD en estos días. Deben quedar completamente vacíos.\n"
 
-    # --- INSTRUCCIONES FINALES Y LISTA DE ACTIVIDADES ---
+    # --- SECCIÓN 4: REGLAS FINALES DE FORMATO ---
     prompt_text += (
-        "\nAhora, asigna las siguientes actividades a los días y horas más lógicos. "
-        "Para las fechas, usa una semana genérica que empiece en Lunes, por ejemplo, del '2024-01-01' (Lunes) al '2024-01-07' (Domingo).\n\n"
-        "Actividades del usuario:\n"
-    )
-    for act in user_activities:
-        prompt_text += f"- Tarea: {act.name}, Duración: {act.duration} minutos, Prioridad: {act.priority}, Categoría: {act.category}\n"
-    
-    prompt_text += (
-        "No rellenes los espacios libres del horario con eventos de 'tiempo libre', 'descanso', 'libre', ni ningún bloque genérico. "
-        "Si no hay actividad asignada para un periodo, déjalo vacío (no crees ni devuelvas un evento para ese intervalo). "
-        "\nDevuelve SÓLO un array de objetos JSON. Cada objeto debe tener 'title', 'start', 'end' y, MUY IMPORTANTE, 'category'. "
-        "La 'category' debe ser una de las que se te proporcionaron (ej: 'estudio', 'ejercicio', 'trabajo', etc.). "
-        "Las fechas deben estar en formato 'YYYY-MM-DDTHH:MM:SS'. No añadas texto adicional fuera del array JSON."
+        "\n--- REGLAS FINALES DE SALIDA ---\n"
+        "1. No inventes eventos como 'descanso', 'almuerzo' o 'tiempo libre'. Si un espacio está vacío, déjalo vacío.\n"
+        "2. La respuesta DEBE ser únicamente un array de objetos JSON, sin texto, explicaciones o comentarios.\n"
+        "3. Cada objeto JSON debe tener estas cuatro claves: 'title' (string), 'start' (string), 'end' (string), y 'category' (string).\n"
+        "4. Las fechas 'start' y 'end' deben estar en formato 'YYYY-MM-DDTHH:MM:SS'.\n"
     )
     
     try:
