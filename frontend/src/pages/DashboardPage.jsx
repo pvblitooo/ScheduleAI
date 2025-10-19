@@ -23,10 +23,10 @@ const ActionButtons = () => (
     <Link to="/calendario" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
       Generar Horario
     </Link>
-    <Link to="/rutinas" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
+    <Link to="/schedules" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
       Ver Rutinas
     </Link>
-    <Link to="/mi-perfil" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
+    <Link to="/profile" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
       Mi Perfil
     </Link>
   </div>
