@@ -7,7 +7,10 @@ from typing import Annotated, List, Any, Dict
 from sqlalchemy import text
 from sqlalchemy import cast
 from sqlalchemy.dialects.postgresql import JSONB
-from fastapi import FastAPI, Depends, HTTPException, status
+import secrets  # Para generar tokens aleatorios seguros
+import hashlib  # Para hashear los tokens antes de guardarlos
+from fastapi import FastAPI, Depends, HTTPException, status, Form, Response, Cookie
+
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
@@ -15,7 +18,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 from database import database, engine
-from db_models import users, metadata, activities, schedules
+from db_models import users, metadata, activities, schedules, persistent_tokens
 
 # --- CONFIGURACIÓN ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -23,8 +26,15 @@ genai.configure(api_key=GEMINI_API_KEY)
 SECRET_KEY = "tu_clave_secreta_super_larga_y_aleatoria_aqui"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# --- NUEVO: Variable de entorno para cookies seguras ---
+# Pon APP_ENV=production en tus variables de entorno de Render
+# En local, no la definas y será False (permitiendo cookies por HTTP)
+IS_PRODUCTION = os.getenv("APP_ENV") == "production"
+# --- FIN NUEVO ---
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token", auto_error=False)
 
 # --- MODELOS ---
 class Token(BaseModel):
@@ -134,16 +144,90 @@ def create_access_token(data: dict, expires_delta: timedelta):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    cred_exc = HTTPException(status.HTTP_401_UNAUTHORIZED, "Could not validate credentials", {"WWW-Authenticate": "Bearer"})
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None: raise cred_exc
-    except JWTError: raise cred_exc
-    user = await get_user_from_db(email=email)
-    if user is None: raise cred_exc
-    return user
+
+# --- ¡NUEVA FUNCIÓN! ---
+async def get_user_from_persistent_token(token: str):
+    """
+    Busca un usuario en la BD a partir de un token persistente.
+    Devuelve el usuario si el token es válido y no ha caducado.
+    """
+    if not token:
+        return None
+    
+    # Hashear el token que viene de la cookie para buscarlo en la BD
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    
+    # Buscar el token en la BD
+    query = persistent_tokens.select().where(
+        persistent_tokens.c.token_hash == token_hash
+    )
+    token_record = await database.fetch_one(query)
+    
+    if not token_record:
+        return None
+        
+    # Verificar si ha caducado
+    if datetime.utcnow() > token_record.expires_at:
+        # (Opcional: borrar el token caducado de la BD)
+        # delete_query = persistent_tokens.delete().where(persistent_tokens.c.id == token_record.id)
+        # await database.execute(delete_query)
+        return None
+        
+    # Token válido. Buscar al usuario.
+    user_query = users.select().where(users.c.id == token_record.user_id)
+    user_record = await database.fetch_one(user_query)
+    
+    return UserInDB(**user_record) if user_record else None
+
+# --- ¡FUNCIÓN 'get_current_user' TOTALMENTE REEMPLAZADA! ---
+async def get_current_user(
+    response: Response, # NUEVO: Inyectamos Response para poder RE-generar el JWT
+    token: Annotated[str, Depends(oauth2_scheme)] = None, # MODIFICADO: El token JWT es opcional
+    remember_token: Annotated[str | None, Cookie()] = None # NUEVO: Leemos la cookie
+):
+    
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    user = None
+    
+    # --- PASO 1: Intentar con el token JWT (Bearer) normal ---
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            email: str = payload.get("sub")
+            if email:
+                user = await get_user_from_db(email=email)
+        except JWTError:
+            # El token es inválido o ha caducado, lo ignoramos y pasamos a la cookie
+            pass 
+            
+    # --- PASO 2: Si el JWT falló, intentar con la cookie "Recordarme" ---
+    if not user and remember_token:
+        user = await get_user_from_persistent_token(remember_token)
+        
+        if user:
+            # ¡Éxito! El usuario se autenticó con la cookie.
+            # Le generamos un NUEVO token JWT de corta duración
+            # para que no tenga que usar la cookie en cada petición.
+            exp = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            new_access_token = create_access_token(
+                data={"sub": user.email}, expires_delta=exp
+            )
+            # NOTA: No podemos enviar el token en la respuesta aquí
+            # porque la dependencia se ejecuta ANTES que el endpoint.
+            # Enviaremos el token nuevo en el Paso 5.
+            # Por ahora, solo con autenticar al usuario es suficiente.
+            pass
+
+    # --- PASO 3: Resultado final ---
+    if user is None:
+        raise credentials_exception
+        
+    return user # Devolvemos el usuario autenticado
 
 
 # --- APP ---
@@ -162,11 +246,57 @@ async def shutdown(): await database.disconnect()
 
 # --- ENDPOINTS ---
 @app.post("/token", response_model=Token)
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    user = await get_user_from_db(form_data.username)
-    if not user or not verify_password(form_data.password, user.hashed_password): raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
+async def login(
+    response: Response, # NUEVO: Inyectamos el objeto Response para poder setear cookies
+    username: str = Form(...), # MODIFICADO: Leemos 'username' desde el formulario
+    password: str = Form(...), # MODIFICADO: Leemos 'password' desde el formulario
+    remember_me: bool = Form(False) # NUEVO: Leemos 'remember_me' desde el formulario
+):
+    # 1. Validación de usuario (como antes)
+    user = await get_user_from_db(username)
+    if not user or not verify_password(password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"}, # Añadir esto es una buena práctica
+        )
+    
+    # 2. Creación del token de acceso normal (JWT)
     exp = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     token = create_access_token(data={"sub": user.email}, expires_delta=exp)
+    
+    # --- NUEVO: Lógica para "Recordarme" ---
+    if remember_me:
+        # Definir la duración del token persistente (ej. 30 días)
+        expires_delta_persistent = timedelta(days=30)
+        expires_at = datetime.utcnow() + expires_delta_persistent
+        
+        # Generar un token aleatorio seguro
+        persistent_token = secrets.token_urlsafe(64)
+        
+        # Hashear el token para guardarlo en la BD
+        token_hash = hashlib.sha256(persistent_token.encode()).hexdigest()
+        
+        # Guardar el hash en la base de datos
+        query = persistent_tokens.insert().values(
+            token_hash=token_hash,
+            user_id=user.id,
+            expires_at=expires_at
+        )
+        await database.execute(query)
+        
+        # Enviar el token *original* (no el hash) al cliente en una cookie
+        response.set_cookie(
+            key="remember_token",
+            value=persistent_token,
+            max_age=int(expires_delta_persistent.total_seconds()),
+            httponly=True,       # ¡Muy importante! Impide acceso desde JS
+            secure=IS_PRODUCTION, # True en producción (HTTPS), False en local (HTTP)
+            samesite="lax"       # 'lax' es un buen balance de seguridad y usabilidad
+        )
+    # --- FIN NUEVO ---
+
+    # 3. Devolver el token de acceso normal
     return {"access_token": token, "token_type": "bearer"}
 
 @app.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
@@ -590,3 +720,36 @@ async def analyze_schedule_endpoint(request: ScheduleAnalysisRequest, user: Anno
     except Exception as e:
         print(f"Error durante el análisis de la IA: {e}")
         raise HTTPException(status_code=500, detail="No se pudieron generar las sugerencias.")
+
+@app.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    response: Response,
+    remember_token: Annotated[str | None, Cookie()] = None
+):
+    """
+    Cierra la sesión del usuario invalidando el token persistente (la cookie).
+    """
+    if remember_token:
+        try:
+            # 1. Invalidar el token en la Base de Datos
+            token_hash = hashlib.sha256(remember_token.encode()).hexdigest()
+            query = persistent_tokens.delete().where(
+                persistent_tokens.c.token_hash == token_hash
+            )
+            await database.execute(query)
+        except Exception as e:
+            # Si hay un error de BD, no queremos que el logout falle.
+            # Simplemente lo imprimimos en el servidor.
+            print(f"Error opcional al invalidar token en BD: {e}")
+    
+    # 2. Indicar al navegador que BORRE la cookie
+    # Esto funciona enviando una cookie con el mismo nombre y fecha de caducidad en el pasado.
+    response.delete_cookie(
+        key="remember_token",
+        httponly=True,
+        secure=IS_PRODUCTION, # Asegúrate de que coincida con la configuración del login
+        samesite="lax"       # Asegúrate de que coincida con la configuración del login
+    )
+    
+    # 204 No Content es la respuesta estándar para un logout exitoso
+    return

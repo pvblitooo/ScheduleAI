@@ -11,6 +11,7 @@ console.log('DIAGNÓSTICO DESDE AXIOS: La baseURL se ha establecido en:', baseUR
 
 const apiClient = axios.create({
   baseURL: baseURL,
+  withCredentials: true
 });
 
 // El interceptor sigue igual

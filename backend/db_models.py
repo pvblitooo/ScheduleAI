@@ -16,6 +16,17 @@ users = Table(
     # Aquí añadiremos más campos del perfil en el futuro
 )
 
+persistent_tokens = Table(
+    "persistent_tokens",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    # Guardará el HASH del token, no el token en sí
+    Column("token_hash", String(255), unique=True, index=True, nullable=False), 
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("expires_at", DateTime, nullable=False),
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
+)
+
 # --- NUEVA TABLA ---
 activities = Table(
     "activities",
