@@ -292,7 +292,7 @@ async def login(
             max_age=int(expires_delta_persistent.total_seconds()),
             httponly=True,       # ¡Muy importante! Impide acceso desde JS
             secure=IS_PRODUCTION, # True en producción (HTTPS), False en local (HTTP)
-            samesite="lax"       # 'lax' es un buen balance de seguridad y usabilidad
+            samesite="none"       # 'lax' es un buen balance de seguridad y usabilidad
         )
     # --- FIN NUEVO ---
 
@@ -748,7 +748,7 @@ async def logout(
         key="remember_token",
         httponly=True,
         secure=IS_PRODUCTION, # Asegúrate de que coincida con la configuración del login
-        samesite="lax"       # Asegúrate de que coincida con la configuración del login
+        samesite="none"       # Asegúrate de que coincida con la configuración del login
     )
     
     # 204 No Content es la respuesta estándar para un logout exitoso
