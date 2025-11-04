@@ -1,3 +1,4 @@
+import { Player } from '@lottiefiles/react-lottie-player';
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import apiClient from './api/axiosConfig'; // <--- ¡IMPORTANTE!
@@ -60,7 +61,18 @@ function App() {
   // Pantalla de carga
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      // Centramos verticalmente y añadimos flex-col para apilar la animación y el texto
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
+        <Player
+          autoplay
+          loop
+          // Pega aquí la URL de la animación que elegiste
+          src="https://lottie.host/edf9b7df-945f-44e2-86ba-f7b3073cafe8/iRmIB68cA2.lottie"
+          // Puedes ajustar el tamaño aquí
+          style={{ height: '300px', width: '300px' }}
+        >
+        </Player>
+        {/* Mantenemos el texto debajo por claridad */}
         <div className="text-white text-xl">Cargando...</div>
       </div>
     );
