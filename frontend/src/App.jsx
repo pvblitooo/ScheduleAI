@@ -1,4 +1,5 @@
 import { Player } from '@lottiefiles/react-lottie-player';
+import loading from './assets/loading-animation.json';
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import apiClient from './api/axiosConfig'; // <--- ¡IMPORTANTE!
@@ -20,21 +21,43 @@ function App() {
   // Este efecto se ejecuta UNA VEZ cuando la app carga
   useEffect(() => {
     const checkAuthStatus = async () => {
+      
+      const minDelay = new Promise(resolve => setTimeout(resolve, 3000));
+
       try {
-        // Hacemos una llamada a /users/me para validar la sesión (cookie o token)
-        const response = await apiClient.get('/users/me');
-        setUser(response.data); // ¡Éxito! Guardamos el usuario.
+        // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
+        // Añadimos .catch(e => null) a la llamada de la API.
+        // Esto "atrapa" el error 401 y devuelve 'null' en lugar de romper
+        // el Promise.all. Ahora, la app SIEMPRE esperará los 3 segundos.
+        const [response] = await Promise.all([
+          apiClient.get('/users/me').catch(e => null), 
+          minDelay
+        ]);
+        
+        // Si la llamada tuvo éxito, 'response' tendrá datos.
+        // Si la llamada falló (401), 'response' será 'null'.
+        if (response && response.data) {
+          setUser(response.data);
+        } else {
+          // Esto se ejecuta si la API devolvió 401 (response es null)
+          setUser(null);
+          localStorage.removeItem('token');
+        }
+
       } catch (error) {
-        // 401: No hay sesión válida
+        // Este catch ahora es solo para errores totalmente inesperados
+        console.error("Error inesperado en checkAuthStatus:", error);
         setUser(null);
-        localStorage.removeItem('token'); // Limpiamos por si acaso
+        localStorage.removeItem('token');
       } finally {
-        setIsLoading(false); // En cualquier caso, dejamos de cargar.
+        // Esto se ejecuta después de que AMBAS promesas (API + 3s delay) han terminado.
+        setIsLoading(false);
       }
     };
 
     checkAuthStatus();
-  }, []); // El array vacío [] significa que esto solo se ejecuta al montar
+  }, []); // El array vacío
+  // --- FIN DE LA MODIFICACIÓN ---
 
   // handleLogin guarda el token y RECARGA la página.
   const handleLogin = (newToken) => {
@@ -60,23 +83,19 @@ function App() {
 
   // Pantalla de carga
   if (isLoading) {
-    return (
-      // Centramos verticalmente y añadimos flex-col para apilar la animación y el texto
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-        <Player
-          autoplay
-          loop
-          // Pega aquí la URL de la animación que elegiste
-          src="https://lottie.host/edf9b7df-945f-44e2-86ba-f7b3073cafe8/iRmIB68cA2.lottie"
-          // Puedes ajustar el tamaño aquí
-          style={{ height: '300px', width: '300px' }}
-        >
-        </Player>
-        {/* Mantenemos el texto debajo por claridad */}
-        <div className="text-white text-xl">Cargando...</div>
-      </div>
-    );
-  }
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
+      <Player
+        autoplay
+        loop
+        src={loading} // <-- ¡Ahora React sabe qué es "loading"!
+        style={{ height: '300px', width: '300px' }}
+      >
+      </Player>
+      <div className="text-white text-xl">Cargando...</div>
+    </div>
+  );
+}
 
   // Las rutas se protegen con el estado 'user'
   return (
