@@ -16,12 +16,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from passlib.context import CryptContext
 from jose import JWTError, jwt
+from dotenv import load_dotenv
 
 from database import database, engine
 from db_models import users, metadata, activities, schedules, persistent_tokens
 
+# DESPUÉS (con override):
+load_dotenv(override=True)
+
 # --- CONFIGURACIÓN ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if GEMINI_API_KEY:
+    # Imprime solo los primeros 4 y últimos 4 caracteres por seguridad
+    print(f"--- [DEBUG] Clave cargada: {GEMINI_API_KEY[:4]}...{GEMINI_API_KEY[-4:]}")
+else:
+    print("--- [DEBUG] ¡ERROR! No se encontró GEMINI_API_KEY en el entorno.")
+# --- FIN DE LÍNEAS DE DEBUG ---
+
 genai.configure(api_key=GEMINI_API_KEY)
 SECRET_KEY = "tu_clave_secreta_super_larga_y_aleatoria_aqui"
 ALGORITHM = "HS256"

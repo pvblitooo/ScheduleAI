@@ -4,83 +4,176 @@ import { Outlet, NavLink } from 'react-router-dom';
 const MainLayout = ({ handleLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Clases para el enlace activo, usando la funcionalidad de NavLink
+  // Clases para el enlace activo con íconos
   const linkClasses = ({ isActive }) =>
-    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
       isActive
-        ? 'bg-gray-900 text-white'
-        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        ? 'bg-slate-800 text-purple-400 border border-slate-700'
+        : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
     }`;
   
   const mobileLinkClasses = ({ isActive }) =>
-    `block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+    `flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
       isActive
-        ? 'bg-gray-900 text-white'
-        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        ? 'bg-slate-800 text-purple-400 border border-slate-700'
+        : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
     }`;
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
-      <nav className="bg-gray-800 shadow-lg sticky top-0 z-20">
+    <div className="min-h-screen bg-slate-950 flex flex-col">
+      <nav className="bg-slate-900 border-b border-slate-800 shadow-lg sticky top-0 z-20 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             
             {/* Logo y Navegación de Escritorio */}
-            <div className="flex items-center">
-              <span className="text-2xl font-bold text-purple-400">ScheduleAI</span>
-              {/* Los enlaces solo se muestran en pantallas medianas y grandes */}
-              <div className="hidden md:block">
-                <div className="ml-10 flex items-baseline space-x-4">
-                  <NavLink to="/" className={linkClasses}>Dashboard</NavLink>
-                  <NavLink to="/actividades" className={linkClasses}>Actividades</NavLink>
-                  <NavLink to="/calendario" className={linkClasses}>Calendario</NavLink>
-                  <NavLink to="/schedules" className={linkClasses}>Rutinas</NavLink>
-                  <NavLink to="/profile" className={linkClasses}>Mi Perfil</NavLink>
+            <div className="flex items-center gap-8">
+              {/* Logo con gradiente */}
+              <NavLink to="/" className="flex items-center gap-2 group">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
                 </div>
+                <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                  ScheduleAI
+                </span>
+              </NavLink>
+
+              {/* Enlaces de navegación con íconos (Desktop) */}
+              <div className="hidden md:flex items-center space-x-1">
+                <NavLink to="/" className={linkClasses}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  <span>Dashboard</span>
+                </NavLink>
+
+                <NavLink to="/actividades" className={linkClasses}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  <span>Actividades</span>
+                </NavLink>
+
+                <NavLink to="/calendario" className={linkClasses}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Calendario</span>
+                </NavLink>
+
+                <NavLink to="/schedules" className={linkClasses}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Rutinas</span>
+                </NavLink>
+
+                <NavLink to="/profile" className={linkClasses}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>Mi Perfil</span>
+                </NavLink>
               </div>
             </div>
 
-            {/* Botón de Cerrar Sesión (Escritorio) */}
+            {/* Botón de Cerrar Sesión (Desktop) - Power button cuadrado */}
             <div className="hidden md:block">
-              <button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                Cerrar Sesión
+              <button 
+                onClick={handleLogout} 
+                className="group w-10 h-10 bg-red-600/10 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-200 border-2 border-red-600/30 hover:border-red-500 hover:scale-105"
+                title="Cerrar Sesión"
+              >
+                <svg 
+                  className="w-5 h-5 text-red-500 group-hover:text-white transition-colors" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2.5} 
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+                  />
+                </svg>
               </button>
             </div>
 
             {/* Botón de Menú Hamburguesa (Móvil) */}
-            <div className="-mr-2 flex md:hidden">
+            <div className="flex md:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 type="button"
-                className="bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
+                className="bg-slate-800 inline-flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 focus:outline-none transition-colors"
                 aria-controls="mobile-menu"
-                aria-expanded="false"
+                aria-expanded={isMenuOpen}
               >
                 <span className="sr-only">Abrir menú principal</span>
-                {/* Icono de hamburguesa o de cierre */}
                 {isMenuOpen ? (
-                  <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 ) : (
-                  <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                  <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
                 )}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Menú Desplegable (Móvil) */}
+        {/* Menú Desplegable (Móvil) con íconos */}
         {isMenuOpen && (
-          <div className="md:hidden" id="mobile-menu">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <NavLink to="/" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Dashboard</NavLink>
-              <NavLink to="/actividades" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Actividades</NavLink>
-              <NavLink to="/calendario" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Calendario</NavLink>
-              <NavLink to="/schedules" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Rutinas</NavLink>
-              <NavLink to="/profile" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>Mi Perfil</NavLink>
+          <div className="md:hidden border-t border-slate-800" id="mobile-menu">
+            <div className="px-4 pt-2 pb-3 space-y-1">
+              <NavLink to="/" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span>Dashboard</span>
+              </NavLink>
+
+              <NavLink to="/actividades" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span>Actividades</span>
+              </NavLink>
+
+              <NavLink to="/calendario" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Calendario</span>
+              </NavLink>
+
+              <NavLink to="/schedules" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>Rutinas</span>
+              </NavLink>
+
+              <NavLink to="/profile" onClick={() => setIsMenuOpen(false)} className={mobileLinkClasses}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>Mi Perfil</span>
+              </NavLink>
             </div>
-            <div className="pt-4 pb-3 border-t border-gray-700 px-2 sm:px-3">
-              <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="w-full text-left bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-md transition-colors">
-                Cerrar Sesión
+
+            <div className="pt-3 pb-4 border-t border-slate-800 px-4">
+              <button 
+                onClick={() => { handleLogout(); setIsMenuOpen(false); }} 
+                className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 border border-slate-700 hover:border-red-500"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Cerrar Sesión</span>
               </button>
             </div>
           </div>
@@ -89,7 +182,6 @@ const MainLayout = ({ handleLogout }) => {
 
       {/* Contenido Principal */}
       <main className="flex-grow w-full">
-        {/* El Outlet renderiza la página activa */}
         <Outlet />
       </main>
     </div>
@@ -97,3 +189,4 @@ const MainLayout = ({ handleLogout }) => {
 };
 
 export default MainLayout;
+

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../api/axiosConfig'; // Asegúrate de que la ruta a tu cliente API sea correcta
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import AddActivityModal from '../components/AddActivityModal'; // <-- ¡IMPORTADO!
 
 // --- Colores y funciones de ayuda ---
 const CATEGORY_COLORS = {
@@ -15,49 +16,93 @@ const CATEGORY_COLORS = {
 };
 const getColor = (category) => CATEGORY_COLORS[category] || CATEGORY_COLORS.default;
 
+// --- NUEVA FUNCIÓN ---: Formateador de fecha inteligente
+// Esta función nos dirá si un evento es "Hoy", "Mañana" o en una fecha específica
+const formatEventDate = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+
+  const timeOptions = { hour: '2-digit', minute: '2-digit' };
+  
+  if (date.toDateString() === now.toDateString()) {
+    return `Hoy, ${date.toLocaleTimeString([], timeOptions)}`;
+  }
+  if (date.toDateString() === tomorrow.toDateString()) {
+    return `Mañana, ${date.toLocaleTimeString([], timeOptions)}`;
+  }
+  // Formato para otros días, ej: "vie. 7 nov, 14:30"
+  // Usamos 'es-ES' para el formato en español
+  return date.toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', ...timeOptions });
+};
+
 const ActionButtons = () => (
-  <div className="flex flex-wrap justify-center gap-4 md:gap-6 mb-12">
-    <Link to="/actividades" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
-      Gestionar Actividades
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+    <Link 
+      to="/actividades" 
+      className="group bg-slate-900 border border-slate-800 px-6 py-5 rounded-xl hover:border-purple-500/50 text-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-purple-500/20"
+    >
+      <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:from-purple-500/30 group-hover:to-blue-500/30 transition-all">
+        <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      </div>
+      <span className="text-purple-400 text-base font-semibold block group-hover:text-purple-300 transition-colors">
+        Gestionar Actividades
+      </span>
     </Link>
-    <Link to="/calendario" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
-      Generar Horario
+
+    <Link 
+      to="/calendario" 
+      className="group bg-slate-900 border border-slate-800 px-6 py-5 rounded-xl hover:border-purple-500/50 text-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-purple-500/20"
+    >
+      <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:from-purple-500/30 group-hover:to-blue-500/30 transition-all">
+        <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <span className="text-purple-400 text-base font-semibold block group-hover:text-purple-300 transition-colors">
+        Generar Horario
+      </span>
     </Link>
-    <Link to="/schedules" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
-      Ver Rutinas
+
+    <Link 
+      to="/schedules" 
+      className="group bg-slate-900 border border-slate-800 px-6 py-5 rounded-xl hover:border-purple-500/50 text-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-purple-500/20"
+    >
+      <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:from-purple-500/30 group-hover:to-blue-500/30 transition-all">
+        <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <span className="text-purple-400 text-base font-semibold block group-hover:text-purple-300 transition-colors">
+        Ver Rutinas
+      </span>
     </Link>
-    <Link to="/profile" className="bg-gray-800 px-8 py-4 rounded-lg hover:bg-gray-700/80 border border-transparent hover:border-purple-500 text-purple-400 text-lg font-semibold transition-all duration-300">
-      Mi Perfil
+
+    <Link 
+      to="/profile" 
+      className="group bg-slate-900 border border-slate-800 px-6 py-5 rounded-xl hover:border-purple-500/50 text-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-purple-500/20"
+    >
+      <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:from-purple-500/30 group-hover:to-blue-500/30 transition-all">
+        <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      </div>
+      <span className="text-purple-400 text-base font-semibold block group-hover:text-purple-300 transition-colors">
+        Mi Perfil
+      </span>
     </Link>
   </div>
 );
 
-const DailySummary = ({ events }) => {
-  if (!events.length) {
-    return (
-      <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-300 mb-8 max-w-4xl mx-auto">
-        <p>✨ ¡Día despejado! No tienes actividades programadas para hoy. ✨</p>
-      </div>
-    );
-  }
-
-  const totalEvents = events.length;
-  // Obtenemos la hora del primer y último evento del día
-  const earliest = new Date(Math.min(...events.map(e => new Date(e.start))));
-  const latest = new Date(Math.max(...events.map(e => new Date(e.end))));
-
-  return (
-    <div className="bg-gray-700/50 p-4 rounded-lg text-center text-gray-300 mb-8 max-w-4xl mx-auto">
-      <p>Hoy tienes <span className="font-bold text-purple-400">{totalEvents}</span> {totalEvents === 1 ? 'actividad' : 'actividades'} desde las <span className="font-bold text-white">{earliest.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span> hasta las <span className="font-bold text-white">{latest.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>.</p>
-    </div>
-  );
-};
 
 // --- Componente Principal DashboardPage ---
 const DashboardPage = () => {
   const [userName, setUserName] = useState('');
   const [activeSchedule, setActiveSchedule] = useState(null);
-  const [todaysEvents, setTodaysEvents] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -65,28 +110,68 @@ const DashboardPage = () => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        // Hacemos ambas peticiones en paralelo para mayor eficiencia
         const [userResponse, scheduleResponse] = await Promise.all([
           apiClient.get('/users/me'),
           apiClient.get('/schedules/active/')
         ]);
 
-        // Procesamos los datos del usuario
         setUserName(userResponse.data.first_name || 'Usuario');
         
-        // Procesamos los datos de la rutina
         const schedule = scheduleResponse.data;
         setActiveSchedule(schedule);
 
+        // --- ¡INICIO DE LA NUEVA LÓGICA MEJORADA! ---
+
         const now = new Date();
-        // Ajuste para que Domingo sea 6 (JS lo da como 0 por defecto)
-        const dayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        const allUpcomingEvents = [];
+
+        // 1. Iteramos por los próximos 7 días (0 = hoy, 1 = mañana, etc.)
+        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+          
+          // 2. Calculamos la fecha y el día de la semana para el día que estamos revisando
+          const targetDate = new Date(now);
+          targetDate.setDate(now.getDate() + dayOffset);
+          const targetDayIndex = targetDate.getDay(); // JS: 0=Domingo, 1=Lunes, ... 6=Sábado
+          
+          // 3. Filtramos los eventos de la plantilla que coinciden con ese día de la semana
+          const eventsForTargetDay = schedule.events.filter(event => 
+            new Date(event.start).getDay() === targetDayIndex
+          );
+
+          // 4. Proyectamos esos eventos a la fecha 'targetDate' (hoy, mañana, etc.)
+          for (const event of eventsForTargetDay) {
+            const templateTime = new Date(event.start);
+            
+            // Creamos una nueva fecha para el evento, usando el AÑO/MES/DÍA de 'targetDate'
+            // pero la HORA/MINUTO/SEGUNDO de la plantilla
+            const projectedStartDate = new Date(targetDate);
+            projectedStartDate.setHours(
+              templateTime.getHours(),
+              templateTime.getMinutes(),
+              templateTime.getSeconds(),
+              0 // reseteamos milisegundos
+            );
+
+            // 5. ¡IMPORTANTE! Solo añadimos el evento si esta fecha proyectada está en el futuro
+            if (projectedStartDate > now) {
+              allUpcomingEvents.push({
+                ...event,
+                // Sobrescribimos 'start' con la fecha futura correcta
+                start: projectedStartDate.toISOString(), 
+              });
+            }
+          }
+        }
+
+        // 6. Ahora 'allUpcomingEvents' tiene todas las tareas de los próximos 7 días.
+        // Las ordenamos y tomamos las 3 primeras.
+        const futureEvents = allUpcomingEvents
+          .sort((a, b) => new Date(a.start) - new Date(b.start)) // Ordenar por más cercano
+          .slice(0, 3); // Tomar solo los primeros 3
         
-        const eventsForToday = schedule.events
-          .filter(event => new Date(event.start).getDay() === now.getDay())
-          .sort((a, b) => new Date(a.start) - new Date(b.start));
+        setUpcomingEvents(futureEvents);
+        // --- FIN DE LA NUEVA LÓGICA ---
         
-        setTodaysEvents(eventsForToday);
         setError(null);
         
       } catch (err) {
@@ -97,7 +182,7 @@ const DashboardPage = () => {
           setError('No se pudo cargar la información del dashboard.');
         }
         setActiveSchedule(null);
-        setTodaysEvents([]);
+        setUpcomingEvents([]);
       } finally {
         setIsLoading(false);
       }
@@ -123,106 +208,146 @@ const DashboardPage = () => {
 
   // --- Estructura Principal del Componente ---
   return (
-    <div className="p-4 sm:p-8 space-y-8 text-white">
-      
-      {/* --- SALUDO (ARRIBA) --- */}
-      {/* Este saludo se muestra siempre que tengamos el nombre del usuario */}
-      {!isLoading && userName && (
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            ¡Hola, <span className="text-purple-400">{userName}</span>!
-          </h1>
-          {activeSchedule && (
-            <p className="text-lg text-gray-400">
-              Tu rutina activa es: <span className="font-semibold">{activeSchedule.name}</span>
-            </p>
-          )}
+  <div className="p-6 sm:p-8 space-y-6 text-white min-h-screen">
+    
+    {/* --- SALUDO --- */}
+    {!isLoading && userName && (
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">
+          ¡Hola, <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{userName}</span>!
+        </h1>
+        {activeSchedule && (
+          <p className="text-base text-slate-400">
+            Tu rutina activa es: <span className="font-semibold text-purple-400">{activeSchedule.name}</span>
+          </p>
+        )}
+      </div>
+    )}
+
+    {/* --- Contenido Principal del Dashboard --- */}
+    <div className="space-y-6">
+      {isLoading && (
+        <div className="text-center p-16 text-slate-400">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+          <p>Cargando dashboard...</p>
         </div>
       )}
 
-      {/* --- Contenido Principal del Dashboard --- */}
-      <div className="space-y-8">
-        {isLoading && (
-          <div className="text-center p-10 text-gray-400">Cargando dashboard...</div>
-        )}
-
-        {/* SI NO hay rutina activa, muestra el mensaje de bienvenida */}
-        {!isLoading && !activeSchedule && (
-          <div className="text-center p-10 bg-gray-800 rounded-xl max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold text-purple-400 mb-4">¡Bienvenido a tu Dashboard!</h2>
-            <p className="text-gray-300">
-              Actualmente no tienes una rutina activa. Cuando actives una, aquí podrás ver tu agenda del día y la distribución de tus actividades.
-            </p>
+      {/* SI NO hay rutina activa */}
+      {!isLoading && !activeSchedule && (
+        <div className="text-center p-12 bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl mx-auto shadow-xl">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
           </div>
-        )}
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-3">
+            ¡Bienvenido a tu Dashboard!
+          </h2>
+          <p className="text-slate-300 leading-relaxed">
+            Actualmente no tienes una rutina activa. Cuando actives una, aquí podrás ver tu agenda del día y la distribución de tus actividades.
+          </p>
+        </div>
+      )}
 
-        {/* SI SÍ hay rutina activa, muestra el dashboard completo */}
-        {!isLoading && activeSchedule && (
-          <>
-            <DailySummary events={todaysEvents} />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Columna Izquierda: Agenda para Hoy */}
-              <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
-                <h2 className="text-purple-400 font-bold text-xl mb-4">Agenda para Hoy</h2>
-                {todaysEvents.length > 0 ? (
-                  <ul className="space-y-4 max-h-96 overflow-y-auto">
-                    {todaysEvents.map(event => (
-                      <li key={event.id || event.start} className="flex items-center gap-3">
-                        <div className="w-1.5 h-5 rounded-full" style={{ backgroundColor: getColor(event.category) }}></div>
-                        <span className="font-mono text-gray-400 text-sm">{new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        <p className="flex-grow">{event.title}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-400">No hay actividades programadas para hoy.</p>
-                )}
-              </div>
-
-              {/* Columna Derecha: Distribución Semanal */}
-              <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
-                <h2 className="text-purple-400 font-bold text-xl mb-4">Distribución Semanal</h2>
-                {weeklyCategoryDistribution.length > 0 ? (
-                  <div className="flex-grow w-full min-h-[300px]">
-                    <ResponsiveContainer>
-                      <PieChart>
-                        <Pie 
-                          data={weeklyCategoryDistribution} 
-                          cx="50%" 
-                          cy="50%" 
-                          labelLine={false} 
-                          outerRadius="80%" 
-                          fill="#8884d8" 
-                          dataKey="value" 
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {weeklyCategoryDistribution.map((entry, index) => <Cell key={`cell-${index}`} fill={getColor(entry.name)} />)}
-                        </Pie>
-                        <Tooltip 
-                          contentStyle={{ background: '#1F2937', border: '1px solid #4B5563' }} 
-                          formatter={(value) => [`${value} horas`, null]} 
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+      {/* SI SÍ hay rutina activa */}
+      {!isLoading && activeSchedule && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* --- Próximas Tareas --- */}
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+              <h2 className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent font-bold text-xl mb-5">
+                Próximas Tareas
+              </h2>
+              {upcomingEvents.length > 0 ? (
+                <ul className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                  {upcomingEvents.map(event => (
+                    <li 
+                      key={event.id || event.start} 
+                      className="flex items-start gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-200"
+                    >
+                      <div 
+                        className="w-1 h-12 rounded-full mt-0.5 flex-shrink-0" 
+                        style={{ backgroundColor: getColor(event.category) }}
+                      ></div>
+                      <div className="flex-grow min-w-0">
+                        <p className="font-semibold text-white text-sm mb-1 truncate">{event.title}</p>
+                        <span className="font-mono text-slate-400 text-xs">
+                          {formatEventDate(event.start)}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                ) : (
-                  <p className="text-gray-400 m-auto">No hay datos para mostrar la distribución.</p>
-                )}
-              </div>
+                  <p className="text-slate-400 text-sm">¡Genial! No tienes tareas próximas.</p>
+                </div>
+              )}
             </div>
-          </>
-        )}
 
-        {/* --- SECCIÓN DE ACCIONES (SIEMPRE VISIBLE, excepto cargando) --- */}
-        {!isLoading && (
-          <div className="text-center pt-12 mt-8 border-t border-gray-700/50">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-300">¿Qué quieres hacer ahora?</h2>
-            <ActionButtons />
+            {/* --- Distribución Semanal --- */}
+            <div className="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col">
+              <h2 className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent font-bold text-xl mb-5">
+                Distribución Semanal
+              </h2>
+              {weeklyCategoryDistribution.length > 0 ? (
+                <div className="flex-grow w-full min-h-[300px]">
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie 
+                        data={weeklyCategoryDistribution} 
+                        cx="50%" 
+                        cy="50%" 
+                        labelLine={false} 
+                        outerRadius="75%" 
+                        fill="#8884d8" 
+                        dataKey="value" 
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {weeklyCategoryDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={getColor(entry.name)} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: '#0f172a', 
+                          border: '1px solid #334155',
+                          borderRadius: '0.75rem',
+                          color: '#fff'
+                        }} 
+                        formatter={(value) => [`${value} horas`, null]} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="flex-grow flex items-center justify-center">
+                  <p className="text-slate-400 text-sm">No hay datos para mostrar la distribución.</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
+
+      {/* --- SECCIÓN DE ACCIONES --- */}
+      {!isLoading && (
+        <div className="text-center pt-8 mt-6 border-t border-slate-800">
+          <h2 className="text-xl font-semibold mb-6 text-slate-300">¿Qué quieres hacer ahora?</h2>
+          <ActionButtons />
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
+
 };
 
 export default DashboardPage;
