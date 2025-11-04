@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../api/axiosConfig'; // Asegúrate de que la ruta a tu cliente API sea correcta
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import AddActivityModal from '../components/AddActivityModal'; // <-- ¡IMPORTADO!
 
 // --- Colores y funciones de ayuda ---
 const CATEGORY_COLORS = {
