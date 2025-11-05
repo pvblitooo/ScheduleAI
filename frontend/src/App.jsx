@@ -2,7 +2,7 @@ import { Player } from '@lottiefiles/react-lottie-player';
 import loading from './assets/loading-animation.json';
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import apiClient from './api/axiosConfig'; // <--- ¡IMPORTANTE!
+import apiClient from './api/axiosConfig';
 
 import MainLayout from './layouts/MainLayout';
 import DashboardPage from './pages/DashboardPage';
@@ -15,92 +15,94 @@ import ProfilePage from './pages/ProfilePage';
 
 function App() {
   const [user, setUser] = useState(null);
-  // Empezamos en 'true' para mostrar "Cargando..." mientras validamos la cookie
   const [isLoading, setIsLoading] = useState(true);
 
-  // Este efecto se ejecuta UNA VEZ cuando la app carga
   useEffect(() => {
     const checkAuthStatus = async () => {
-      
       const minDelay = new Promise(resolve => setTimeout(resolve, 3000));
 
       try {
-        // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
-        // Añadimos .catch(e => null) a la llamada de la API.
-        // Esto "atrapa" el error 401 y devuelve 'null' en lugar de romper
-        // el Promise.all. Ahora, la app SIEMPRE esperará los 3 segundos.
         const [response] = await Promise.all([
           apiClient.get('/users/me').catch(e => null), 
           minDelay
         ]);
         
-        // Si la llamada tuvo éxito, 'response' tendrá datos.
-        // Si la llamada falló (401), 'response' será 'null'.
         if (response && response.data) {
           setUser(response.data);
         } else {
-          // Esto se ejecuta si la API devolvió 401 (response es null)
           setUser(null);
           localStorage.removeItem('token');
         }
-
       } catch (error) {
-        // Este catch ahora es solo para errores totalmente inesperados
         console.error("Error inesperado en checkAuthStatus:", error);
         setUser(null);
         localStorage.removeItem('token');
       } finally {
-        // Esto se ejecuta después de que AMBAS promesas (API + 3s delay) han terminado.
         setIsLoading(false);
       }
     };
 
     checkAuthStatus();
-  }, []); // El array vacío
-  // --- FIN DE LA MODIFICACIÓN ---
+  }, []);
 
-  // handleLogin guarda el token y RECARGA la página.
   const handleLogin = (newToken) => {
     localStorage.setItem('token', newToken);
-    window.location.href = '/'; // Recarga para re-validar con el useEffect
+    window.location.href = '/';
   };
 
   const handleLogout = async () => {
     try {
-      // 1. Le decimos al backend que invalide la cookie y la borre
       await apiClient.post('/logout');
-      
     } catch (error) {
-      // Aunque el backend falle (ej. red caída), igual cerramos sesión en el frontend.
       console.error("Error en el servidor al cerrar sesión:", error);
     }
     
-    // 2. Limpiamos el estado y el localStorage del frontend
     localStorage.removeItem('token');
     setUser(null);
-    // La app nos redirigirá automáticamente al login porque 'user' es null
   };
 
-  // Pantalla de carga
+  // Pantalla de carga mejorada
   if (isLoading) {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-      <Player
-        autoplay
-        loop
-        src={loading} // <-- ¡Ahora React sabe qué es "loading"!
-        style={{ height: '300px', width: '300px' }}
-      >
-      </Player>
-      <div className="text-white text-xl">Cargando...</div>
-    </div>
-  );
-}
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950">
+        <div className="space-y-6 flex flex-col items-center">
+          {/* Animación de carga */}
+          <div className="scale-75">
+            <Player
+              autoplay
+              loop
+              src={loading}
+              style={{ height: '300px', width: '300px' }}
+            />
+          </div>
 
-  // Las rutas se protegen con el estado 'user'
+          {/* Texto de carga con animación */}
+          <div className="space-y-3 text-center">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              ScheduleAI
+            </h2>
+            <div className="flex items-center justify-center gap-2">
+              <p className="text-slate-300 text-lg">Cargando</p>
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Barra de progreso visual */}
+          <div className="w-48 h-1 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+            <div className="h-full bg-gradient-to-r from-purple-600 to-blue-600 rounded-full animate-pulse" style={{ width: '65%' }}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-900 w-full">
+      <div className="min-h-screen bg-slate-950 w-full">
         <Routes>
           <Route path="/login" element={!user ? <LoginPage handleLogin={handleLogin} /> : <Navigate to="/" />} />
           <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
@@ -112,7 +114,7 @@ function App() {
             <Route path="calendario" element={<CalendarPage />} />
             <Route path="schedules" element={<SavedSchedulesPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="*" element={<Navigate to="/" />} /> {/* Redirige rutas no encontradas al dashboard */}
+            <Route path="*" element={<Navigate to="/" />} />
           </Route>
         </Routes>
       </div>
