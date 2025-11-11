@@ -2,25 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Organizador con IA</title>
+    <title>ScheduleAI</title>
     
     <script src="/config.js"></script>
     
-    <!-- Diagnóstico: Verificamos el valor justo después de cargar el script -->
     <script>
       console.log('DIAGNÓSTICO DESDE HTML: window.API_BASE_URL es:', window.API_BASE_URL);
     </script>
-
   </head>
   <body>
     <div id="root"></div>
-    <!-- Usamos 'defer' para asegurarnos de que se ejecute después de parsear el HTML -->
     <script type="module" src="/src/main.jsx" defer></script>
   </body>
 </html>
