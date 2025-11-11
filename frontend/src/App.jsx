@@ -62,11 +62,13 @@ function App() {
   };
 
   // Pantalla de carga mejorada
-  if (isLoading) {
+    if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950">
+      // --- MODIFICADO ---
+      // Aplicamos el fondo del body (que viene de index.css)
+      // y ajustamos los colores del texto
+      <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="space-y-6 flex flex-col items-center">
-          {/* Animación de carga */}
           <div className="scale-75">
             <Player
               autoplay
@@ -75,14 +77,13 @@ function App() {
               style={{ height: '300px', width: '300px' }}
             />
           </div>
-
-          {/* Texto de carga con animación */}
           <div className="space-y-3 text-center">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
               ScheduleAI
             </h2>
             <div className="flex items-center justify-center gap-2">
-              <p className="text-slate-300 text-lg">Cargando</p>
+              {/* --- MODIFICADO --- */}
+              <p className="text-slate-600 dark:text-slate-300 text-lg">Cargando</p>
               <div className="flex gap-1.5">
                 <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -90,9 +91,8 @@ function App() {
               </div>
             </div>
           </div>
-
-          {/* Barra de progreso visual */}
-          <div className="w-48 h-1 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          {/* --- MODIFICADO --- */}
+          <div className="w-48 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700">
             <div className="h-full bg-gradient-to-r from-purple-600 to-blue-600 rounded-full animate-pulse" style={{ width: '65%' }}></div>
           </div>
         </div>
@@ -102,12 +102,13 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-slate-950 w-full">
+      {/* --- MODIFICADO --- */}
+      {/* Ya no necesitamos 'bg-slate-950' aquí. El color lo pone el 'body' desde index.css */}
+      <div className="min-h-screen w-full">
         <Routes>
           <Route path="/login" element={!user ? <LoginPage handleLogin={handleLogin} /> : <Navigate to="/" />} />
           <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
           
-          {/* Rutas protegidas */}
           <Route path="/" element={user ? <MainLayout handleLogout={handleLogout} user={user} /> : <Navigate to="/login" />}>
             <Route index element={<DashboardPage />} /> 
             <Route path="actividades" element={<ActivitiesPage />} />

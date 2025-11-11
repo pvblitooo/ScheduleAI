@@ -9,25 +9,27 @@ import ActionModal from '../components/ActionModal';
 import interactionPlugin from '@fullcalendar/interaction';
 import EventModal from '../components/EventModal';
 
-const StarIcon = ({ isActive }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 20 20"
-    fill={isActive ? "currentColor" : "none"}
-    stroke={isActive ? "currentColor" : "#d1d5db"}
-    className={`h-6 w-6 transition-all 
-      ${isActive
-        ? 'text-yellow-400 drop-shadow-md animate-bounce'
-        : 'text-slate-400 group-hover:text-yellow-300'}`}
-    strokeWidth={isActive ? 0 : 2}
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M10 15.27l5.18 3.04-1.64-7.03L18 7.24l-7.19-.62L10 2 9.19 6.62 2 7.24l5.46 4.04-1.64 7.03z"
-    />
-  </svg>
-);
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid'; // Para la estrella activa
+import { StarIcon as StarIconOutline } from '@heroicons/react/24/outline'; // Para la estrella inactiva
+
+
+const StarIcon = ({ isActive }) => {
+  return (
+    <button
+      className="flex-shrink-0 focus:outline-none hover:scale-110 active:scale-95 transition-transform duration-200"
+      title={isActive ? "Esta es tu rutina activa" : "Marcar como activa"}
+    >
+      {isActive ? (
+        // Estrella activa (sólida)
+        <StarIconSolid className="h-6 w-6 text-yellow-400 drop-shadow-md animate-bounce" />
+      ) : (
+        // Estrella inactiva (contorno)
+        // Se ve mejor con un color más oscuro en modo claro y más claro en modo oscuro
+        <StarIconOutline className="h-6 w-6 text-slate-500 dark:text-slate-400 group-hover:text-yellow-500 dark:group-hover:text-yellow-400" />
+      )}
+    </button>
+  );
+};
 
 // Reutilizamos la función de colores que ya tenemos
 const getColorForCategory = (category) => {
@@ -50,6 +52,7 @@ const SavedSchedulesPage = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [eventModalIsOpen, setEventModalIsOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // --- ¡NUEVO ESTADO PARA EL MODAL! ---
   // Este estado controlará nuestro modal de confirmación y de error.
@@ -205,155 +208,197 @@ const handleUpdateSchedule = async () => {
     }
 };
 
-return (
-  <>
-    {/* --- CONTENEDOR PRINCIPAL RESPONSIVO --- */}
-    <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-10 text-white h-[calc(100vh-6rem)]">
+const handleRequestAnalysis = async () => {
+    if (!selectedSchedule) return;
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Usamos los 'calendarEvents' actuales (que pueden tener cambios sin guardar)
+      const cleanEvents = calendarEvents.map(({ id, backgroundColor, borderColor, ...rest }) => rest);
+      
+      const response = await apiClient.post('/analyze-schedule', {
+        events: cleanEvents
+      });
+      
+      const suggestions = response.data;
+      
+      // Formateamos las sugerencias como una lista HTML
+      const suggestionsHtml = suggestions.length > 0
+        ? `<ul class="list-disc list-inside text-left space-y-2">${suggestions.map(s => `<li>${s}</li>`).join('')}</ul>`
+        : '¡Tu horario se ve genial! No tengo sugerencias por ahora.';
+      
+      setActionModal({
+        isOpen: true,
+        title: '🤖 Análisis de IA',
+        message: suggestionsHtml,
+        onConfirm: null // Lo convertimos en un modal de "solo información"
+      });
+      
+    } catch (error) {
+      console.error("Error al analizar la rutina:", error);
+      setActionModal({ isOpen: true, title: "Error", message: "No se pudo analizar la rutina." });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
-      {/* --- Panel Izquierdo (Lista de Rutinas) --- */}
-      <div className="lg:w-1/3 xl:w-1/4 flex flex-col bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl h-1/3 lg:h-full">
-        <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-          Mis Rutinas
-        </h2>
-        <ul className="flex-grow overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-          {savedSchedules.map((schedule) => (
-            <li
-              key={schedule.id}
-              onClick={() => handleScheduleSelect(schedule)}
-              className={`group p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all duration-200 
-                ${selectedSchedule?.id === schedule.id
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 shadow-xl shadow-purple-500/30'
-                  : 'bg-slate-800 hover:bg-slate-700 hover:shadow-lg'
-              }`}
-            >
-              <div className="flex items-center gap-3 flex-grow min-w-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSetActive(schedule.id);
-                  }}
-                  title={schedule.is_active ? "Esta es tu rutina activa" : "Marcar como activa"}
-                  className="flex-shrink-0 focus:outline-none hover:scale-110 active:scale-95 transition-transform duration-200"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill={schedule.is_active ? "#fbbf24" : "none"}
-                    stroke={schedule.is_active ? "none" : "#94a3b8"}
-                    className={`h-7 w-7 transition-all duration-300
-                      ${schedule.is_active 
-                        ? 'drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] animate-bounce' 
-                        : 'group-hover:stroke-yellow-400'
-                      }`}
-                    strokeWidth={2}
+return (
+    <>
+      {/* Estilos para FullCalendar (igual que antes) */}
+      <style>{`
+        .dark .fc { --fc-border-color: #334155; }
+        .dark .fc-col-header-cell-cushion, .dark .fc-daygrid-day-number { color: #cbd5e1; }
+        .dark .fc-timegrid-slot-label-cushion { color: #94a3b8; }
+        .dark .fc-timegrid-slot-lane { background: #0f172a; }
+        .dark .fc-day-today { background: #1e293b !important; }
+      `}</style>
+      
+      {/* Contenedor Principal (MODIFICADO para tema) */}
+      <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-10 text-slate-900 dark:text-white h-[calc(100vh-6rem)]">
+
+        {/* Panel Izquierdo (MODIFICADO para tema) */}
+        <div className="lg:w-1/3 xl:w-1/4 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xl h-1/3 lg:h-full">
+          <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-500 to-blue-500 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
+            Mis Rutinas
+          </h2>
+          <ul className="flex-grow overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+            {savedSchedules.map((schedule) => (
+              <li
+                key={schedule.id}
+                onClick={() => handleScheduleSelect(schedule)}
+                // Estilos de la lista (MODIFICADO para tema)
+                className={`group p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all duration-200 
+                  ${selectedSchedule?.id === schedule.id
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 shadow-xl shadow-purple-500/30 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-lg'
+                }`}
+              >
+                <div className="flex items-center gap-3 flex-grow min-w-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSetActive(schedule.id); }}
+                    title={schedule.is_active ? "Esta es tu rutina activa" : "Marcar como activa"}
+                    className="flex-shrink-0 focus:outline-none hover:scale-110 active:scale-95 transition-transform duration-200"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-                    />
+                    {/* El componente StarIcon ya fue modificado arriba */}
+                    <StarIcon isActive={schedule.is_active} />
+                  </button>
+                  <p className="font-semibold text-base truncate" title={schedule.name}>
+                    {schedule.name}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(schedule.id, schedule.name); }}
+                  // Botón de eliminar (MODIFICADO para tema)
+                  className="ml-3 bg-slate-200 dark:bg-slate-700/50 hover:bg-red-500 text-slate-500 dark:text-slate-300 hover:text-white active:scale-90 transition-all duration-200 w-8 h-8 flex items-center justify-center rounded-lg shadow opacity-0 group-hover:opacity-100"
+                  title="Eliminar rutina"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                   </svg>
                 </button>
-                <p className="font-semibold text-base truncate" title={schedule.name}>
-                  {schedule.name}
-                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Panel Derecho (MODIFICADO para tema) */}
+        <div className="flex-grow flex flex-col gap-6 min-h-0">
+
+          {/* Panel de Control (MODIFICADO para tema) */}
+          {selectedSchedule && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 flex-shrink-0">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white text-center sm:text-left truncate">
+                Editando: <span className="bg-gradient-to-r from-purple-500 to-blue-500 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">{selectedSchedule.name}</span>
+              </h3>
+              
+              {/* --- ¡NUEVO GRUPO DE BOTONES! --- */}
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                {/* Botón Analizar IA */}
+                <button
+                  onClick={handleRequestAnalysis}
+                  disabled={isAnalyzing}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-600 font-semibold rounded-lg px-4 py-2.5 shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                >
+                  <svg className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isAnalyzing 
+                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    }
+                  </svg>
+                  {isAnalyzing ? 'Analizando...' : 'Analizar'}
+                </button>
+                
+                {/* Botón Guardar Cambios (ahora solo se muestra si hay cambios) */}
+                {isDirty && (
+                  <button
+                    onClick={handleUpdateSchedule}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-bold py-2.5 px-4 rounded-lg shadow-lg hover:shadow-green-500/50 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Guardar
+                  </button>
+                )}
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteSchedule(schedule.id, schedule.name);
-                }}
-                className="ml-3 bg-slate-700/50 hover:bg-red-500 active:scale-90 transition-all duration-200 text-white w-8 h-8 flex items-center justify-center rounded-lg shadow opacity-0 group-hover:opacity-100"
-                title="Eliminar rutina"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none"
-                     viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* --- Panel Derecho (Calendario y Acciones) --- */}
-      <div className="flex-grow flex flex-col gap-6 min-h-0">
-
-        {/* Panel de Control */}
-        {selectedSchedule && (
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center gap-3 flex-shrink-0">
-            <h3 className="text-lg sm:text-xl font-bold text-white text-center sm:text-left">
-              Editando: <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{selectedSchedule.name}</span>
-            </h3>
-            {isDirty && (
-              <button
-                onClick={handleUpdateSchedule}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-bold py-2.5 px-5 rounded-lg shadow-lg hover:shadow-green-500/50 transition-all"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Guardar Cambios
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Calendario */}
-        <div className={`flex-grow bg-white text-gray-800 rounded-2xl border border-slate-200 shadow-2xl p-2 md:p-6 min-h-0 ${!selectedSchedule && 'flex items-center justify-center'}`}>
-          {selectedSchedule ? (
-            <FullCalendar
-              plugins={[timeGridPlugin, interactionPlugin]}
-              initialView="timeGridWeek"
-              headerToolbar={false}
-              allDaySlot={false}
-              locale="es"
-              firstDay={1}
-              height="100%"
-              slotMinTime="05:00:00"
-              slotMaxTime="23:00:00"
-              initialDate='2024-01-01'
-              events={calendarEvents}
-              editable={true}
-              eventClick={handleEventClick}
-              eventChange={handleEventChange}
-              dayHeaderFormat={{ weekday: 'long' }}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400 text-center p-8">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 mb-4 text-slate-300" fill="none" viewBox="0 0 24 24"
-                   stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-              <p className="text-xl font-bold text-slate-500 mb-1">Selecciona una rutina</p>
-              <p className="text-slate-400">Elige una de tus rutinas para editarla aquí.</p>
             </div>
           )}
+
+          {/* Calendario (MODIFICADO para tema) */}
+          <div className={`flex-grow bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-2 md:p-6 min-h-0 ${!selectedSchedule && 'flex items-center justify-center'}`}>
+            {selectedSchedule ? (
+              <FullCalendar
+                plugins={[timeGridPlugin, interactionPlugin]}
+                initialView="timeGridWeek"
+                headerToolbar={false}
+                allDaySlot={false}
+                locale="es"
+                firstDay={1}
+                height="100%"
+                slotMinTime="05:00:00"
+                slotMaxTime="23:00:00"
+                initialDate='2024-01-01'
+                events={calendarEvents}
+                editable={true}
+                eventClick={handleEventClick}
+                eventChange={handleEventChange}
+                dayHeaderFormat={{ weekday: 'long' }}
+              />
+            ) : (
+              // Estado vacío (MODIFICADO para tema)
+              <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 text-center p-8">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 mb-4 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <p className="text-xl font-bold text-slate-600 dark:text-slate-500 mb-1">Selecciona una rutina</p>
+                <p className="text-slate-500 dark:text-slate-400">Elige una de tus rutinas para editarla aquí.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* --- MODALES --- */}
-    <EventModal
-      isOpen={eventModalIsOpen}
-      onRequestClose={() => setEventModalIsOpen(false)}
-      event={selectedEvent}
-      onUpdate={handleUpdateEvent}
-      onDelete={() => {}}
-    />
-    <ActionModal
-      isOpen={actionModal.isOpen}
-      onRequestClose={() => setActionModal({ ...actionModal, isOpen: false })}
-      title={actionModal.title}
-      message={actionModal.message}
-      onConfirm={actionModal.onConfirm}
-      showConfirmButton={!!actionModal.onConfirm}
-    />
-  </>
-);
-
+      {/* Modales (aún necesitan ser actualizados) */}
+      <EventModal
+        isOpen={eventModalIsOpen}
+        onRequestClose={() => setEventModalIsOpen(false)}
+        event={selectedEvent}
+        onUpdate={handleUpdateEvent}
+        onDelete={() => {}} // Deberías implementar esto
+      />
+      <ActionModal
+        isOpen={actionModal.isOpen}
+        onRequestClose={() => setActionModal({ ...actionModal, isOpen: false })}
+        title={actionModal.title}
+        message={actionModal.message}
+        onConfirm={actionModal.onConfirm}
+        showConfirmButton={!!actionModal.onConfirm}
+      />
+    </>
+  );
 };
 
 export default SavedSchedulesPage;

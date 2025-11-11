@@ -61,24 +61,29 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
 
   if (!isOpen) return null;
   
-  return createPortal(
+return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onRequestClose}></div>
       
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-scaleIn">
-        {/* Cabecera */}
-        <div className="flex justify-between items-center p-6 border-b border-slate-800">
+      {/* --- MODIFICADO: Contenedor del Modal --- */}
+      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-scaleIn">
+        
+        {/* --- MODIFICADO: Cabecera --- */}
+        <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-500/20 border border-purple-500/30 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* --- MODIFICADO: Icono --- */}
+            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-500/20 border border-purple-200 dark:border-purple-500/30 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-white">Preferencias</h2>
+            {/* --- MODIFICADO: Título --- */}
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Preferencias</h2>
           </div>
+          {/* --- MODIFICADO: Botón de Cerrar --- */}
           <button 
             onClick={onRequestClose} 
-            className="text-slate-400 hover:text-white hover:bg-slate-800 w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-transparent hover:bg-slate-200 dark:hover:bg-slate-800 w-8 h-8 rounded-lg flex items-center justify-center transition-all"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -86,12 +91,13 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
           </button>
         </div>
 
-        {/* Cuerpo del Modal */}
+        {/* --- MODIFICADO: Cuerpo del Modal --- */}
         <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-          {/* SECCIÓN 1: DISPONIBILIDAD */}
-          <section className="bg-slate-800/50 border border-slate-700/50 p-5 rounded-xl">
+          {/* --- MODIFICADO: SECCIÓN 1: DISPONIBILIDAD --- */}
+          <section className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 rounded-xl">
             <SectionTitle icon={
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              // --- MODIFICADO: Icono ---
+              <svg className="w-5 h-5 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             }>
@@ -99,27 +105,31 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
             </SectionTitle>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="startHour" className="block text-slate-300 text-sm font-medium mb-2">Inicio del día</label>
+                {/* --- MODIFICADO: Label --- */}
+                <label htmlFor="startHour" className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-2">Inicio del día</label>
+                {/* --- MODIFICADO: Input --- */}
                 <input 
                   id="startHour" 
                   type="number" 
                   name="startHour" 
                   value={preferences.startHour || ''} 
                   onChange={onPreferencesChange} 
-                  className="w-full bg-slate-700 border border-slate-600 p-2.5 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+                  className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2.5 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
                   min="0" 
                   max="23" 
                 />
               </div>
               <div>
-                <label htmlFor="endHour" className="block text-slate-300 text-sm font-medium mb-2">Fin del día</label>
+                {/* --- MODIFICADO: Label --- */}
+                <label htmlFor="endHour" className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-2">Fin del día</label>
+                {/* --- MODIFICADO: Input --- */}
                 <input 
                   id="endHour" 
                   type="number" 
                   name="endHour" 
                   value={preferences.endHour || ''} 
                   onChange={onPreferencesChange} 
-                  className="w-full bg-slate-700 border border-slate-600 p-2.5 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+                  className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2.5 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
                   min="1" 
                   max="24" 
                 />
@@ -127,10 +137,11 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
             </div>
           </section>
 
-          {/* SECCIÓN 2: ENERGÍA Y ENFOQUE */}
-          <section className="bg-slate-800/50 border border-slate-700/50 p-5 rounded-xl">
+          {/* --- MODIFICADO: SECCIÓN 2: ENERGÍA Y ENFOQUE --- */}
+          <section className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 rounded-xl">
             <SectionTitle icon={
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              // --- MODIFICADO: Icono ---
+              <svg className="w-5 h-5 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             }>
@@ -139,23 +150,29 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
             
             <div className="space-y-4">
               <div>
-                <label className="block text-slate-300 text-sm font-medium mb-3">Horas de máxima productividad</label>
+                {/* --- MODIFICADO: Label --- */}
+                <label className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-3">Horas de máxima productividad</label>
                 <div className="space-y-2">
                   {(preferences.peakHours || []).map((range, index) => (
-                    <div key={index} className="flex items-center gap-2 bg-slate-700/50 p-2 rounded-lg border border-slate-600/50">
+                    // --- MODIFICADO: Contenedor de rango de tiempo ---
+                    <div key={index} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/50 p-2 rounded-lg border border-slate-200 dark:border-slate-600/50">
+                      {/* --- MODIFICADO: Input time --- */}
                       <input 
                         type="time" 
                         value={range.start} 
                         onChange={(e) => handlePeakHourChange(index, 'start', e.target.value)} 
-                        className="flex-1 bg-slate-700 border border-slate-600 p-2 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                        className="flex-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" 
                       />
-                      <span className="text-slate-400">—</span>
+                      {/* --- MODIFICADO: Guion --- */}
+                      <span className="text-slate-500 dark:text-slate-400">—</span>
+                      {/* --- MODIFICADO: Input time --- */}
                       <input 
                         type="time" 
                         value={range.end} 
                         onChange={(e) => handlePeakHourChange(index, 'end', e.target.value)} 
-                        className="flex-1 bg-slate-700 border border-slate-600 p-2 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                        className="flex-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" 
                       />
+                      {/* Botón (rojo, no cambia) */}
                       <button 
                         onClick={() => removePeakHour(index)} 
                         className="p-2 bg-red-600 hover:bg-red-500 rounded-lg text-white transition-colors"
@@ -166,6 +183,7 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
                       </button>
                     </div>
                   ))}
+                  {/* Botón (verde, no cambia) */}
                   <button 
                     onClick={addPeakHour} 
                     className="w-full bg-green-600 hover:bg-green-500 font-semibold py-2.5 px-4 rounded-lg text-white transition-colors flex items-center justify-center gap-2"
@@ -179,13 +197,15 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
               </div>
 
               <div>
-                <label htmlFor="productivityArchetype" className="block text-slate-300 text-sm font-medium mb-2">Arquetipo de productividad</label>
+                {/* --- MODIFICADO: Label --- */}
+                <label htmlFor="productivityArchetype" className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-2">Arquetipo de productividad</label>
+                {/* --- MODIFICADO: Select --- */}
                 <select 
                   name="productivityArchetype" 
                   id="productivityArchetype" 
                   value={preferences.productivityArchetype || 'Constante'} 
                   onChange={onPreferencesChange} 
-                  className="w-full bg-slate-700 border border-slate-600 p-2.5 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2.5 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                 >
                   <option value="Madrugador">🌅 Madrugador (energía alta por la mañana)</option>
                   <option value="Nocturno">🌙 Nocturno (energía alta por la tarde/noche)</option>
@@ -195,13 +215,15 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
               </div>
 
               <div>
-                <label htmlFor="focusBlockDuration" className="block text-slate-300 text-sm font-medium mb-2">Duración de bloque de enfoque</label>
+                {/* --- MODIFICADO: Label --- */}
+                <label htmlFor="focusBlockDuration" className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-2">Duración de bloque de enfoque</label>
+                {/* --- MODIFICADO: Select --- */}
                 <select 
                   name="focusBlockDuration" 
                   id="focusBlockDuration" 
                   value={preferences.focusBlockDuration || 50} 
                   onChange={onPreferencesChange} 
-                  className="w-full bg-slate-700 border border-slate-600 p-2.5 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2.5 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                 >
                   <option value="25">25 min (Pomodoro) 🍅</option>
                   <option value="50">50 min (Estándar) ⏱️</option>
@@ -211,10 +233,11 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
             </div>
           </section>
 
-          {/* SECCIÓN 3: ESTRATEGIA */}
-          <section className="bg-slate-800/50 border border-slate-700/50 p-5 rounded-xl">
+          {/* --- MODIFICADO: SECCIÓN 3: ESTRATEGIA --- */}
+          <section className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 rounded-xl">
             <SectionTitle icon={
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              // --- MODIFICADO: Icono ---
+              <svg className="w-5 h-5 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
               </svg>
             }>
@@ -223,13 +246,15 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="schedulingAggressiveness" className="block text-slate-300 text-sm font-medium mb-2">Estilo de horario</label>
+                {/* --- MODIFICADO: Label --- */}
+                <label htmlFor="schedulingAggressiveness" className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-2">Estilo de horario</label>
+                {/* --- MODIFICADO: Select --- */}
                 <select 
                   name="schedulingAggressiveness" 
                   id="schedulingAggressiveness" 
                   value={preferences.schedulingAggressiveness || 'Normal'} 
                   onChange={onPreferencesChange} 
-                  className="w-full bg-slate-700 border border-slate-600 p-2.5 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2.5 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                 >
                   <option value="Relajado">😌 Relajado (con descansos amplios)</option>
                   <option value="Normal">⚖️ Normal (balanceado)</option>
@@ -237,25 +262,28 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
                 </select>
               </div>
 
-              <label className="flex items-center gap-3 p-3 rounded-lg bg-slate-700/30 border border-slate-600/50 cursor-pointer hover:bg-slate-700/50 transition-colors">
+              {/* --- MODIFICADO: Checkbox "Agrupar tareas" --- */}
+              <label className="flex items-center gap-3 p-3 rounded-lg bg-slate-100 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-600/50 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700/50 transition-colors">
                 <input 
                   type="checkbox" 
                   name="taskBatching" 
                   id="taskBatching" 
                   checked={!!preferences.taskBatching} 
                   onChange={onPreferencesChange} 
-                  className="w-5 h-5 rounded text-purple-600 bg-slate-600 border-slate-500 focus:ring-purple-500 focus:ring-offset-slate-800" 
+                  className="w-5 h-5 rounded text-purple-600 bg-slate-200 dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-purple-500 focus:ring-offset-white dark:focus:ring-offset-slate-900" 
                 />
-                <span className="font-medium text-slate-200">Agrupar tareas similares</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">Agrupar tareas similares</span>
               </label>
 
               <div>
-                <label className="block text-slate-300 text-sm font-medium mb-3">Días sin reuniones</label>
+                {/* --- MODIFICADO: Label --- */}
+                <label className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-3">Días sin reuniones</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                    // --- MODIFICADO: Checkboxes de días ---
                     <label 
                       key={day} 
-                      className="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg hover:bg-slate-700/50 text-slate-300 border border-slate-600/30 hover:border-purple-500/30 transition-all"
+                      className="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg bg-slate-100 dark:bg-transparent hover:bg-slate-200 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600/30 hover:border-purple-400 dark:hover:border-purple-500/30 transition-all"
                     >
                       <input 
                         type="checkbox" 
@@ -263,7 +291,7 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
                         value={day} 
                         checked={(preferences.daysNoMeetings || []).includes(day)} 
                         onChange={handleDaysNoMeetingsChange} 
-                        className="w-4 h-4 text-purple-600 bg-slate-600 border-slate-500 rounded focus:ring-purple-500" 
+                        className="w-4 h-4 text-purple-600 bg-slate-200 dark:bg-slate-600 border-slate-300 dark:border-slate-500 rounded focus:ring-purple-500" 
                       />
                       <span className="text-sm">{day.slice(0, 3)}</span>
                     </label>
@@ -274,8 +302,9 @@ const PreferencesModal = ({ isOpen, onRequestClose, preferences, onPreferencesCh
           </section>
         </div>
 
-        {/* Pie del Modal */}
-        <div className="flex justify-end p-6 border-t border-slate-800">
+        {/* --- MODIFICADO: Pie del Modal --- */}
+        <div className="flex justify-end p-6 border-t border-slate-200 dark:border-slate-800">
+          {/* Botón (gradiente, no cambia) */}
           <button 
             onClick={onRequestClose} 
             className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 font-semibold py-3 px-8 rounded-lg text-white transition-all shadow-lg hover:shadow-purple-500/50"

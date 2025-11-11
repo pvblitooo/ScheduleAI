@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  @apply bg-slate-100 dark:bg-slate-950 transition-colors duration-300;
+}
+
 .ReactModal__Overlay {
   z-index: 1000 !important;
 }

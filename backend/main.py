@@ -587,22 +587,30 @@ async def generate_schedule(preferences: UserPreferences, user: Annotated[User, 
     non_recurrent_activities = [act for act in user_activities if not act.is_recurrent]
 
     # --- INICIO DE LA CONSTRUCCIÓN DEL PROMPT MEJORADO ---
+    
+    # --- MEJORA 1: Damos contexto de qué día es "hoy" ---
+    days_map_es = {0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves", 4: "Viernes", 5: "Sábado", 6: "Domingo"}
+    # Usamos .weekday() que da 0 para Lunes y 6 para Domingo
+    today_str = days_map_es[datetime.now(timezone.utc).weekday()] 
+
     prompt_text = (
         f"Eres un planificador de élite llamado ScheduleAI. Tu misión es crear una plantilla de horario semanal perfecta y optimizada para un usuario, de Lunes a Domingo. "
         f"El horario de cada día debe empezar a las {preferences.startHour}:00 y terminar a las {preferences.endHour}:00. "
         "Usa una semana genérica, por ejemplo, del '2024-01-01' (Lunes) al '2024-01-07' (Domingo).\n"
+        f"\nCONTEXTO IMPORTANTE: El usuario está pidiendo esta plantilla un {today_str}. El horario debe ser una plantilla semanal reutilizable.\n"
     )
 
     # --- SECCIÓN 1: COMPROMISOS FIJOS (RECURRENTES) ---
     if recurrent_activities:
-        days_map = {1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves", 5: "Viernes", 6: "Sábado", 7: "Domingo"}
+        days_map_int = {1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves", 5: "Viernes", 6: "Sábado", 7: "Domingo"}
         prompt_text += (
-            "\n--- PASO 1: BLOQUEA LOS COMPROMISOS FIJOS ---\n"
-            "Primero, agenda los siguientes compromisos. Estos son OBLIGATORIOS e INAMOVIBLES. "
-            "Debes colocarlos en un horario razonable DENTRO de los días especificados. No puedes cambiarlos de día ni ignorarlos.\n"
+            "\n--- PASO 1: BLOQUEA LOS COMPROMISOS FIJOS (RECURRENTES) ---\n"
+            "Primero, agenda los siguientes compromisos. Son OBLIGATORIOS. "
+            # --- MEJORA 2: Instrucción más clara para crear "rutinas" ---
+            "Para crear una rutina consistente, intenta agendarlos A LA MISMA HORA en todos los días especificados, si es posible.\n"
         )
         for act in recurrent_activities:
-            day_names = ", ".join([days_map.get(d, f"Día {d}") for d in act.recurrent_days])
+            day_names = ", ".join([days_map_int.get(d, f"Día {d}") for d in act.recurrent_days])
             prompt_text += f"- Actividad FIJA: '{act.name}' ({act.category}) de {act.duration} minutos. Debe ocurrir los días: {day_names}.\n"
 
     # --- SECCIÓN 2: TAREAS FLEXIBLES A ORGANIZAR ---
@@ -614,56 +622,84 @@ async def generate_schedule(preferences: UserPreferences, user: Annotated[User, 
         )
         for act in non_recurrent_activities:
             prompt_text += f"- Tarea flexible: '{act.name}' ({act.category}), Duración: {act.duration} minutos, Prioridad: {act.priority}.\n"
-    elif recurrent_activities:
-        prompt_text += "\nNo hay tareas flexibles que organizar. El horario debe contener únicamente los compromisos fijos ya mencionados.\n"
-    else:
-        # Este caso es por si no hay ninguna actividad en total
+    elif not recurrent_activities:
         prompt_text += "\nNo hay actividades para agendar.\n"
+    else:
+        prompt_text += "\nNo hay tareas flexibles que organizar. El horario debe contener únicamente los compromisos fijos.\n"
 
 
     # --- SECCIÓN 3: APLICA LAS PREFERENCIAS DE PRODUCTIVIDAD ---
     prompt_text += "\n--- PASO 3: APLICA LAS PREFERENCIAS DEL USUARIO ---\n"
     if preferences.peakHours:
         peak_hours_str = ", ".join([f"de {p.start} a {p.end}" for p in preferences.peakHours])
-        prompt_text += f"- Horas pico de energía: {peak_hours_str}. Usa estos bloques para las tareas de alta prioridad o que requieran más concentración.\n"
+        prompt_text += f"- Horas pico de energía: {peak_hours_str}. Usa estos bloques para las tareas de 'alta' prioridad o que requieran más concentración (como 'estudio' o 'trabajo').\n"
     if preferences.productivityArchetype:
         prompt_text += f"- Arquetipo de energía: '{preferences.productivityArchetype}'. Adapta el horario a este patrón (ej: tareas pesadas por la mañana para 'Madrugador').\n"
-    prompt_text += f"- Bloques de enfoque: Divide las tareas largas en bloques de trabajo de {preferences.focusBlockDuration} minutos.\n"
+    
+    prompt_text += f"- Bloques de enfoque: Intenta dividir tareas largas en bloques de {preferences.focusBlockDuration} minutos.\n"
+    
+    # --- MEJORA 3: Instrucciones de descanso más claras ---
     if preferences.schedulingAggressiveness == 'Relajado':
-        prompt_text += "- Estilo de horario: 'Relajado'. Inserta descansos de 10-15 minutos entre bloques de trabajo intenso.\n"
+        prompt_text += "- Estilo de horario: 'Relajado'. Inserta DESCANSOS CORTOS de 10-15 minutos entre bloques de trabajo intenso (ej: después de 2 bloques de enfoque).\n"
     elif preferences.schedulingAggressiveness == 'Compacto':
-        prompt_text += "- Estilo de horario: 'Compacto'. Minimiza los descansos para un horario más denso.\n"
+        prompt_text += "- Estilo de horario: 'Compacto'. Minimiza los descansos para un horario más denso, agrupando tareas seguidas.\n"
     else:
-        prompt_text += "- Estilo de horario: 'Normal'. Inserta pequeños descansos de 5-10 minutos cuando sea lógico.\n"
+        prompt_text += "- Estilo de horario: 'Normal'. Inserta pequeños descansos de 5-10 minutos solo si es lógico (ej. entre categorías diferentes).\n"
+    
     if preferences.taskBatching:
-        prompt_text += "- Agrupación de tareas: Siempre que sea posible, agrupa tareas de la misma categoría de forma consecutiva.\n"
+        prompt_text += "- Agrupación de tareas: SIEMPRE que sea posible, agrupa tareas de la misma categoría de forma consecutiva (ej: 'estudio' con 'estudio').\n"
     if preferences.daysNoMeetings:
         days_str = ", ".join(preferences.daysNoMeetings)
-        prompt_text += f"- Días de descanso TOTAL: {days_str}. NO AGREGUES NINGUNA ACTIVIDAD en estos días. Deben quedar completamente vacíos.\n"
+        prompt_text += f"- Días de descanso TOTAL: {days_str}. NO AGREGUES NINGUNA ACTIVIDAD en estos días. Deben quedar completamente vacíos (excepto, quizás, 'Almuerzo').\n"
 
-    # --- SECCIÓN 4: REGLAS FINALES DE FORMATO ---
+    # --- MEJORA 4: REGLAS FINALES DE FORMATO (Corregimos la contradicción) ---
     prompt_text += (
         "\n--- REGLAS FINALES DE SALIDA ---\n"
-        "1. No inventes eventos como 'descanso', 'almuerzo' o 'tiempo libre'. Si un espacio está vacío, déjalo vacío.\n"
-        "2. La respuesta DEBE ser únicamente un array de objetos JSON, sin texto, explicaciones o comentarios.\n"
-        "3. Cada objeto JSON debe tener estas cuatro claves: 'title' (string), 'start' (string), 'end' (string), y 'category' (string).\n"
-        "4. Las fechas 'start' y 'end' deben estar en formato 'YYYY-MM-DDTHH:MM:SS'.\n"
+        "1. REALISMO: Es OBLIGATORIO añadir UN bloque de 60 minutos para 'Almuerzo' cada día, en un horario razonable (ej: 13:00 o 14:00).\n"
+        "2. DESCANSOS: Solo añade bloques de 'Descanso Corto' (10-15 min) SI el usuario pidió un horario 'Relajado'. No inventes otros eventos.\n"
+        "3. La respuesta DEBE ser únicamente un array de objetos JSON, sin texto, explicaciones o comentarios.\n"
+        "4. Cada objeto JSON debe tener estas cuatro claves: 'title' (string), 'start' (string), 'end' (string), y 'category' (string).\n"
+        "5. Para eventos generados por ti como 'Almuerzo' o 'Descanso Corto', usa la categoría 'personal'.\n"
+        "6. Las fechas 'start' y 'end' deben estar en formato 'YYYY-MM-DDTHH:MM:SS'.\n"
     )
     
     try:
         model = genai.GenerativeModel('gemini-2.5-flash-lite')
         response = await model.generate_content_async(prompt_text)
         
-        response_text = response.text.strip()
-        if response_text.startswith('```json'): response_text = response_text[7:]
-        if response_text.endswith('```'): response_text = response_text[:-3]
+        # --- MEJORA 5: Lógica de parseo robusta (anti-crash) ---
+        
+        # 1. Comprobamos si la respuesta está vacía o fue bloqueada
+        if not response.candidates or not response.candidates[0].content or not response.candidates[0].content.parts:
+            if response.prompt_feedback and response.prompt_feedback.block_reason:
+                print(f"Generación de IA bloqueada: {response.prompt_feedback.block_reason}")
+                raise HTTPException(status_code=400, detail=f"La solicitud fue bloqueada por seguridad: {response.prompt_feedback.block_reason}")
+            else:
+                print("Generación de IA falló: Respuesta vacía de Gemini.")
+                raise HTTPException(status_code=500, detail="La IA devolvió una respuesta vacía.")
+
+        # 2. Obtenemos el texto de la forma correcta
+        response_text = response.candidates[0].content.parts[0].text.strip()
+        
+        # 3. Limpiamos el JSON
+        if response_text.startswith('```json'): 
+            response_text = response_text[7:]
+        if response_text.endswith('```'): 
+            response_text = response_text[:-3]
         response_text = response_text.strip()
 
-        if not response_text: raise ValueError("Respuesta vacía.")
+        if not response_text: 
+            raise ValueError("Respuesta vacía después de procesar.")
+            
         return json.loads(response_text)
+        
     except Exception as e:
         print(f"Error generando horario: {e}")
-        raise HTTPException(status_code=500, detail="Error procesando la respuesta de la IA.")
+        # --- MEJORA 6: Mensaje de error más útil para el frontend ---
+        # Si el JSON está mal formateado (un error común de la IA), esto lo capturará.
+        if "json.loads" in str(e):
+            raise HTTPException(status_code=500, detail="La IA generó un formato de horario inválido. Inténtalo de nuevo.")
+        raise HTTPException(status_code=500, detail=f"Error procesando la respuesta de la IA: {e}")
 
 @app.post("/analyze-schedule", response_model=List[str])
 async def analyze_schedule_endpoint(request: ScheduleAnalysisRequest, user: Annotated[User, Depends(get_current_user)]):
@@ -671,19 +707,15 @@ async def analyze_schedule_endpoint(request: ScheduleAnalysisRequest, user: Anno
     Analiza el horario actual usando la IA de Gemini para dar sugerencias de mejora.
     """
     try:
-        # --- ¡CAMBIO CLAVE! ---
-        # Añadimos el nombre del día a cada evento para que la IA tenga más contexto.
+        # --- (Tu lógica para añadir 'day_of_week' es correcta y no cambia) ---
         days_of_week = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
         events_with_day_name = []
         for event in request.events:
             try:
-                # Extraemos el día de la semana (0=Lunes, 6=Domingo) de la fecha de inicio
                 event_date = datetime.fromisoformat(event['start'])
                 day_index = event_date.weekday()
-                # Añadimos el nombre del día al objeto del evento
                 events_with_day_name.append({**event, "day_of_week": days_of_week[day_index]})
             except (ValueError, KeyError):
-                # Si un evento no tiene fecha, lo ignoramos para el análisis
                 continue
         
         schedule_json_str = json.dumps(events_with_day_name, indent=2, ensure_ascii=False)
@@ -710,17 +742,32 @@ async def analyze_schedule_endpoint(request: ScheduleAnalysisRequest, user: Anno
         }}
         """
 
-        # --- ¡LLAMADA CORRECTA Y FINAL A LA API DE GOOGLE GEMINI! ---
-        model = genai.GenerativeModel('gemini-2.5-flash-lite') # <-- ¡EL MODELO CORRECTO!
+        model = genai.GenerativeModel('gemini-2.5-flash-lite')
         response = await model.generate_content_async(prompt_text)
         
-        response_text = response.text.strip()
+        # --- ¡INICIO DE LA CORRECCIÓN! ---
+        # Verificamos la respuesta de la IA de forma robusta
+        
+        # 1. Comprobamos si la respuesta está vacía o fue bloqueada
+        if not response.candidates or not response.candidates[0].content or not response.candidates[0].content.parts:
+            # Comprobamos si fue bloqueada por seguridad
+            if response.prompt_feedback and response.prompt_feedback.block_reason:
+                print(f"Análisis de IA bloqueado: {response.prompt_feedback.block_reason}")
+                raise HTTPException(status_code=400, detail=f"La solicitud fue bloqueada por seguridad: {response.prompt_feedback.block_reason}")
+            else:
+                print("Análisis de IA falló: Respuesta vacía de Gemini.")
+                raise HTTPException(status_code=500, detail="La IA devolvió una respuesta vacía.")
+
+        # 2. Obtenemos el texto de la forma correcta
+        response_text = response.candidates[0].content.parts[0].text.strip()
+        
+        # --- FIN DE LA CORRECCIÓN ---
         
         if response_text.startswith('```json'):
             response_text = response_text[7:-3].strip()
 
         if not response_text:
-            raise ValueError("La respuesta de la IA está vacía.")
+            raise ValueError("La respuesta de la IA está vacía después de procesarla.")
             
         response_data = json.loads(response_text)
 
@@ -730,6 +777,8 @@ async def analyze_schedule_endpoint(request: ScheduleAnalysisRequest, user: Anno
             raise HTTPException(status_code=500, detail="La respuesta de la IA no tuvo el formato esperado.")
 
     except Exception as e:
+        # Esto ahora capturará el 'ValueError' si el JSON está mal,
+        # pero ya no el error 'Expecting value...'
         print(f"Error durante el análisis de la IA: {e}")
         raise HTTPException(status_code=500, detail="No se pudieron generar las sugerencias.")
 
