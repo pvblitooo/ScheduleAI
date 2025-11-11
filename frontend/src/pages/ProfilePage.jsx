@@ -105,122 +105,177 @@ const ProfilePage = () => {
 
   
   return (
-    <>
-      <div className="text-white max-w-4xl mx-auto p-4 md:p-8">
-        <h1 className="text-4xl font-bold mb-8">Mi Perfil</h1>
+  <>
+    <div className="text-white max-w-4xl mx-auto p-4 md:p-8">
+      <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+        Mi Perfil
+      </h1>
 
-        {/* --- SECCIÓN DE DATOS PERSONALES (MODIFICADA) --- */}
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
-          <h2 className="text-2xl font-semibold mb-6">Información de la Cuenta</h2>
-          
-          {/* Campos para Nombre y Apellido */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-            <div>
-              <label htmlFor="first_name" className="block text-gray-400 mb-2">Nombre</label>
-              <input
-                type="text"
-                id="first_name"
-                name="first_name"
-                className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
-                value={profile.first_name}
-                onChange={handleProfileChange}
-                placeholder="Tu nombre"
-              />
-            </div>
-            <div>
-              <label htmlFor="last_name" className="block text-gray-400 mb-2">Apellido</label>
-              <input
-                type="text"
-                id="last_name"
-                name="last_name"
-                className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
-                value={profile.last_name}
-                onChange={handleProfileChange}
-                placeholder="Tu apellido"
-              />
-            </div>
+      {/* --- SECCIÓN DE DATOS PERSONALES --- */}
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl mb-8">
+        <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+          <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          Información de la Cuenta
+        </h2>
+        
+        {/* Campos para Nombre y Apellido */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label htmlFor="first_name" className="block text-slate-300 font-medium mb-2">Nombre</label>
+            <input
+              type="text"
+              id="first_name"
+              name="first_name"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              value={profile.first_name}
+              onChange={handleProfileChange}
+              placeholder="Tu nombre"
+            />
           </div>
-          
-          {/* Campo de Correo Electrónico (no editable) */}
-          <div className="mb-6">
-            <label className="block text-gray-400 mb-2">Correo Electrónico</label>
-            <p className="bg-gray-900 p-3 rounded-lg text-gray-300">{profile.email}</p>
+          <div>
+            <label htmlFor="last_name" className="block text-slate-300 font-medium mb-2">Apellido</label>
+            <input
+              type="text"
+              id="last_name"
+              name="last_name"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              value={profile.last_name}
+              onChange={handleProfileChange}
+              placeholder="Tu apellido"
+            />
           </div>
-
-          {/* Botón para guardar los cambios del perfil */}
-          <button 
-            onClick={handleSaveChanges}
-            className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 font-bold py-2 px-6 rounded-lg transition-colors"
-          >
-            Guardar Cambios
-          </button>
+        </div>
+        
+        {/* Campo de Correo Electrónico (no editable) */}
+        <div className="mb-6">
+          <label className="block text-slate-300 font-medium mb-2 flex items-center gap-2">
+            <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Correo Electrónico
+          </label>
+          <div className="bg-slate-800 border border-slate-700 p-3 rounded-lg text-slate-400 flex items-center gap-2">
+            <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            {profile.email}
+          </div>
         </div>
 
-        {/* --- SECCIÓN CAMBIAR CONTRASEÑA (sin cambios en la estructura) --- */}
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
-          <h2 className="text-2xl font-semibold mb-6">Cambiar Contraseña</h2>
-          <form onSubmit={handleChangePassword} className="space-y-4">
-            
-            {/* Contraseña Actual */}
-            <div className="relative">
-              <label htmlFor="currentPassword">Contraseña Actual</label>
-              <input
-                type={showPasswords ? 'text' : 'password'}
-                id="currentPassword" name="currentPassword"
-                value={passwords.currentPassword} onChange={handlePasswordChange}
-                className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 mt-2 pr-10" required
-              />
-              <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center">
-                {showPasswords ? <EyeSlashIcon className="h-5 w-5 text-gray-400"/> : <EyeIcon className="h-5 w-5 text-gray-400"/>}
-              </button>
-            </div>
-            
-            {/* Nueva Contraseña */}
-            <div className="relative">
-              <label htmlFor="newPassword">Nueva Contraseña (mín. 8 caracteres)</label>
-              <input
-                type={showPasswords ? 'text' : 'password'}
-                id="newPassword" name="newPassword"
-                value={passwords.newPassword} onChange={handlePasswordChange}
-                className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 mt-2 pr-10" required
-              />
-              <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center">
-                {showPasswords ? <EyeSlashIcon className="h-5 w-5 text-gray-400"/> : <EyeIcon className="h-5 w-5 text-gray-400"/>}
-              </button>
-            </div>
-
-            {/* Confirmar Nueva Contraseña */}
-            <div className="relative">
-              <label htmlFor="confirmPassword">Confirmar Nueva Contraseña</label>
-              <input
-                type={showPasswords ? 'text' : 'password'}
-                id="confirmPassword" name="confirmPassword"
-                value={passwords.confirmPassword} onChange={handlePasswordChange}
-                className="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 mt-2 pr-10" required
-              />
-              <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center">
-                {showPasswords ? <EyeSlashIcon className="h-5 w-5 text-gray-400"/> : <EyeIcon className="h-5 w-5 text-gray-400"/>}
-              </button>
-            </div>
-            
-            <button type="submit" className="w-full sm:w-auto bg-green-600 hover:bg-green-700 font-bold py-2 px-6 rounded-lg">
-              Cambiar Contraseña
-            </button>
-          </form>
-        </div>
+        {/* Botón para guardar los cambios del perfil */}
+        <button 
+          onClick={handleSaveChanges}
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-purple-500/50 transition-all active:scale-95"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Guardar Cambios
+        </button>
       </div>
 
-      {/* --- MODAL PARA NOTIFICACIONES --- */}
-      <ActionModal
-        isOpen={actionModal.isOpen}
-        onRequestClose={() => setActionModal({ ...actionModal, isOpen: false })}
-        title={actionModal.title}
-        message={actionModal.message}
-        showConfirmButton={false} // Oculta el botón de "Confirmar"
-        isInfoOnly={true}       // Estilo para solo mostrar información
-      />
-    </>
-  );
+      {/* --- SECCIÓN CAMBIAR CONTRASEÑA --- */}
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+        <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+          <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+          Cambiar Contraseña
+        </h2>
+        <form onSubmit={handleChangePassword} className="space-y-5">
+          
+          {/* Contraseña Actual */}
+          <div className="relative">
+            <label htmlFor="currentPassword" className="block text-slate-300 font-medium mb-2">Contraseña Actual</label>
+            <input
+              type={showPasswords ? 'text' : 'password'}
+              id="currentPassword" 
+              name="currentPassword"
+              value={passwords.currentPassword} 
+              onChange={handlePasswordChange}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 pr-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+              required
+              placeholder="Ingresa tu contraseña actual"
+            />
+            <button 
+              type="button" 
+              onClick={() => setShowPasswords(!showPasswords)} 
+              className="absolute right-3 top-11 text-slate-400 hover:text-white transition-colors"
+            >
+              {showPasswords ? <EyeSlashIcon className="h-5 w-5"/> : <EyeIcon className="h-5 w-5"/>}
+            </button>
+          </div>
+          
+          {/* Nueva Contraseña */}
+          <div className="relative">
+            <label htmlFor="newPassword" className="block text-slate-300 font-medium mb-2">Nueva Contraseña (mín. 8 caracteres)</label>
+            <input
+              type={showPasswords ? 'text' : 'password'}
+              id="newPassword" 
+              name="newPassword"
+              value={passwords.newPassword} 
+              onChange={handlePasswordChange}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 pr-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+              required
+              placeholder="Ingresa una nueva contraseña"
+            />
+            <button 
+              type="button" 
+              onClick={() => setShowPasswords(!showPasswords)} 
+              className="absolute right-3 top-11 text-slate-400 hover:text-white transition-colors"
+            >
+              {showPasswords ? <EyeSlashIcon className="h-5 w-5"/> : <EyeIcon className="h-5 w-5"/>}
+            </button>
+          </div>
+
+          {/* Confirmar Nueva Contraseña */}
+          <div className="relative">
+            <label htmlFor="confirmPassword" className="block text-slate-300 font-medium mb-2">Confirmar Nueva Contraseña</label>
+            <input
+              type={showPasswords ? 'text' : 'password'}
+              id="confirmPassword" 
+              name="confirmPassword"
+              value={passwords.confirmPassword} 
+              onChange={handlePasswordChange}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 pr-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+              required
+              placeholder="Confirma tu nueva contraseña"
+            />
+            <button 
+              type="button" 
+              onClick={() => setShowPasswords(!showPasswords)} 
+              className="absolute right-3 top-11 text-slate-400 hover:text-white transition-colors"
+            >
+              {showPasswords ? <EyeSlashIcon className="h-5 w-5"/> : <EyeIcon className="h-5 w-5"/>}
+            </button>
+          </div>
+          
+          <button 
+            type="submit" 
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-green-500/50 transition-all active:scale-95"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            Cambiar Contraseña
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {/* --- MODAL PARA NOTIFICACIONES --- */}
+    <ActionModal
+      isOpen={actionModal.isOpen}
+      onRequestClose={() => setActionModal({ ...actionModal, isOpen: false })}
+      title={actionModal.title}
+      message={actionModal.message}
+      showConfirmButton={false}
+      isInfoOnly={true}
+    />
+  </>
+);
 };
 
 export default ProfilePage;
